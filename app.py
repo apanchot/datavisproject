@@ -28,7 +28,7 @@ layout_choropleth = dict(geo=dict(scope='world',  #default
                                   projection=dict(type='orthographic'
                                                  ),
                                   #showland=True,   # default = True
-                                  landcolor='black',
+                                  landcolor='blue',
                                   lakecolor='white',
                                   showocean=True,   # default = False
                                   oceancolor='azure'
