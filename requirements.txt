@@ -8,3 +8,5 @@ dash-core-components
 pandas
 numpy
 google-cloud-firestore
+dash.dependencies
+plotly.graph_objs
