@@ -5,6 +5,35 @@ from dash.dependencies import Input, Output, State
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+from math import sin, cos, sqrt, atan2, radians
+
+#################### Importing all the needed data ####################
+
+#Importing a dataframe that contains latitude and longitude coordinates of 15,493 cities from around the world.
+cities_coordinates = pd.read_csv('worldcities.csv')
+
+#Importing a dataframe that contains tourism ranking and arrivals data
+cities_visitors = pd.read_csv('../data/wiki_international_visitors.csv')
+
+#################### Function to calculate the distance between cities ####################
+
+def distance(x, y):
+    R = 6373.0
+    
+    lat1 = radians(selected_cities.loc[x,'lat'])
+    lon1 = radians(selected_cities.loc[x,'lng'])
+    lat2 = radians(selected_cities.loc[y,'lat'])
+    lon2 = radians(selected_cities.loc[y,'lng'])
+    
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    
+    distance = R * c
+    
+    return distance
 
 ######################################################Data##############################################################
 
