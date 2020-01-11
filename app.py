@@ -146,7 +146,7 @@ for idx in df.index:
 
 indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
-summable_indicators = ['arrivals', 'growth']
+summable_indicators = ['arrivals', 'income']
 
 #places= ['energy_emissions', 'industry_emissions',
 #       'agriculture_emissions', 'waste_emissions',
@@ -315,13 +315,13 @@ def plots(n_clicks, cities, indicator, scale, projection):
     ]
 )
 def indicator(cities):
-    df_loc = selected_cities.loc[selected_cities.index.isin(cities)].sum().reset_index()
+    cities_sum = selected_cities.loc[selected_cities.index.isin(cities)].sum()
 
-    value_1 = round(df_loc[summable_indicators[0]].values[0], 2)
-    value_2 = round(df_loc[summable_indicators[1]].values[0], 2)
+    value_1 = cities_sum[summable_indicators[0]]
+    value_2 = cities_sum[summable_indicators[1]]
     
-    return str(summable_indicators[0]) + ': ' + str(value_1),\
-           str(summable_indicators[1]) + ': ' + str(value_1), 
+    return str(summable_indicators[0]) + ': ' + str(value_1) + 'people',\
+           str(summable_indicators[1]) + ': $' + str(value_2) + 'Billion',
 
 if __name__ == '__main__':
     app.run_server(debug=True)
