@@ -146,6 +146,8 @@ for idx in df.index:
 
 indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
+summable_indicators = ['arrivals', 'growth']
+
 #places= ['energy_emissions', 'industry_emissions',
 #       'agriculture_emissions', 'waste_emissions',
 #       'land_use_foresty_emissions', 'bunker_fuels_emissions',
@@ -154,9 +156,9 @@ indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
 ######################################################Interactive Components############################################
 
-city_options = [dict(label=city, value=city) for city in df['city'].unique()]
+city_options = [dict(label=city, value=city) for city in selected_cities.index]
 
-indicator_options = [dict(label=indicator.replace('_', ' '), value=indicator) for indicator in indicator_names]
+indicator_options = [dict(label=indicator, value=indicator) for indicator in indicator_names]
 
 #sector_options = [dict(label=place.replace('_', ' '), value=place) for place in places]
 
@@ -195,18 +197,6 @@ app.layout = html.Div([
                                                                     html.Br(),
                 ]),
                 dcc.Tab(label='Tab_2',value='tab_2', children=[
-                                                            html.Label('City Slider'),
-                                                            dcc.Slider(
-                                                                id='city_slider',
-                                                                min=selected_cities.sort_values('city').iloc[0].name,
-                                                                max=selected_cities.sort_values('city').iloc[-1].name,
-                                                                marks={str(i): '{}'.format(str(i)) for i in list(selected_cities.sort_values('city').index.values)},
-                                                                value=selected_cities.sort_values('city').iloc[0].name,
-                                                                step=None,
-                                                                included=False
-                                                            ),
-
-                                                            html.Br(),
 
                                                             html.Label('Linear Log'),
                                                             dcc.RadioItems(
@@ -233,12 +223,8 @@ app.layout = html.Div([
 
             html.Div([
 
-                html.Div([html.Label(id='gas_1')], className='mini pretty'),
-                html.Div([html.Label(id='gas_2')], className='mini pretty'),
-                html.Div([html.Label(id='gas_3')], className='mini pretty'),
-                html.Div([html.Label(id='gas_4')], className='mini pretty'),
-                html.Div([html.Label(id='gas_5')], className='mini pretty'),
-
+                html.Div([html.Label(id='indic_1')], className='mini pretty'),
+                html.Div([html.Label(id='indic_2')], className='mini pretty'),
             ], className='5 containers row'),
 
             html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
@@ -249,9 +235,7 @@ app.layout = html.Div([
 
     html.Div([
 
-        html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty'),
-
-        html.Div([dcc.Graph(id='aggregate_graph')], className='column3 pretty')
+        html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty')
 
     ], className='row')
 
@@ -262,25 +246,22 @@ app.layout = html.Div([
 @app.callback(
     [
         Output("bar_graph", "figure"),
-        Output("scattergeo", "figure"),
-        Output("aggregate_graph", "figure"),
-    ],
+        Output("scattergeo", "figure")    ],
     [
         Input("button", 'n_clicks')
     ],
     [
-        State("city_slider", "value"),
         State("city_drop", "value"),
         State("indicator", "value"),
         State("lin_log", "value"),
         State("projection", "value")    ]
 )
-def plots(n_clicks,year, indicators, indicator, scale, projection, sector):
+def plots(n_clicks, cities, indicator, scale, projection, sector):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
 
-    x_bar = selected_cities['city']
+    x_bar = selected_cities.index
     y_bar = selected_cities[indicator]
 
     data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
@@ -301,7 +282,7 @@ def plots(n_clicks,year, indicators, indicator, scale, projection, sector):
                      marker=dict(size=4, color="red"))]
     
     map_layout=go.Layout(
-        title_text="TSP Problem", hovermode="closest",
+        title_text="Optimized World Tour", hovermode="closest",
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
                                         method="animate",
@@ -320,62 +301,27 @@ def plots(n_clicks,year, indicators, indicator, scale, projection, sector):
 
         for k in df.loc[:,"generation"].unique()]
 
-    ############################################Third Scatter Plot######################################################
-
-    df_loc = df.loc[df['country_name'].isin(indicators)].groupby('year').sum().reset_index()
-
-    data_agg = []
-
-    for place in sector:
-        data_agg.append(dict(type='scatter',
-                         x=df_loc['year'].unique(),
-                         y=df_loc[place],
-                         name=place.replace('_', ' '),
-                         mode='markers'
-                         )
-                    )
-
-    layout_agg = dict(title=dict(text='Aggregate CO2 Emissions by Sector'),
-                     yaxis=dict(title=['CO2 Emissions', 'CO2 Emissions (log scaled)'][scale],
-                                type=['linear', 'log'][scale]),
-                     xaxis=dict(title='Year'),
-                     paper_bgcolor='#f9f9f9'
-                     )
-
     return go.Figure(data=data_bar, layout=layout_bar), \
-           go.Figure(data=map_data, layout=map_layout, frames=map_frames),\
-           go.Figure(data=data_agg, layout=layout_agg)
-
+           go.Figure(data=map_data, layout=map_layout, frames=map_frames)
 
 @app.callback(
     [
-        Output("gas_1", "children"),
-        Output("gas_2", "children"),
-        Output("gas_3", "children"),
-        Output("gas_4", "children"),
-        Output("gas_5", "children")
+        Output("indic_1", "children"),
+        Output("indic_2", "children"),
     ],
 
     [
-        Input("country_drop", "value"),
-        Input("year_slider", "value"),
+        Input("city_drop", "value")
     ]
 )
-def indicator(indicators, year):
-    df_loc = df.loc[df['country_name'].isin(indicators)].groupby('year').sum().reset_index()
+def indicator(cities):
+    df_loc = selected_cities.loc[selected_cities.index.isin(cities)].sum().reset_index()
 
-    value_1 = round(df_loc.loc[df_loc['year'] == year][gas_names[0]].values[0], 2)
-    value_2 = round(df_loc.loc[df_loc['year'] == year][gas_names[1]].values[0], 2)
-    value_3 = round(df_loc.loc[df_loc['year'] == year][gas_names[2]].values[0], 2)
-    value_4 = round(df_loc.loc[df_loc['year'] == year][gas_names[3]].values[0], 2)
-    value_5 = round(df_loc.loc[df_loc['year'] == year][gas_names[4]].values[0], 2)
-
-    return str(gas_names[0]).replace('_', ' ') + ': ' + str(value_1),\
-           str(gas_names[1]).replace('_', ' ') + ': ' + str(value_2), \
-           str(gas_names[2]).replace('_', ' ') + ': ' + str(value_3), \
-           str(gas_names[3]).replace('_', ' ') + ': ' + str(value_4), \
-           str(gas_names[4]).replace('_', ' ') + ': ' + str(value_5),
-
+    value_1 = round(df_loc[summable_indicators[0]].values[0], 2)
+    value_2 = round(df_loc[summable_indicators[1]].values[0], 2)
+    
+    return str(summable_indicators[0]) + ': ' + str(value_1),\
+           str(summable_indicators[1]) + ': ' + str(value_1), 
 
 if __name__ == '__main__':
     app.run_server(debug=True)
