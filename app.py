@@ -249,7 +249,7 @@ app.layout = html.Div([
 
     html.Div([
 
-        html.Div([dcc.Graph(id='choropleth')], className='column3 pretty'),
+        html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty'),
 
         html.Div([dcc.Graph(id='aggregate_graph')], className='column3 pretty')
 
@@ -262,7 +262,7 @@ app.layout = html.Div([
 @app.callback(
     [
         Output("bar_graph", "figure"),
-        Output("choropleth", "figure"),
+        Output("scattergeo", "figure"),
         Output("aggregate_graph", "figure"),
     ],
     [
@@ -275,59 +275,50 @@ app.layout = html.Div([
         State("lin_log", "value"),
         State("projection", "value")    ]
 )
-def plots(n_clicks,year, indicators, gas, scale, projection, sector):
+def plots(n_clicks,year, indicators, indicator, scale, projection, sector):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
-    for indicator in indicators:
-        df_bar = selected_cities.copy()
 
-        x_bar = df_bar['city']
-        y_bar = df_bar[gas]
+    x_bar = selected_cities['city']
+    y_bar = selected_cities[indicator]
 
-        data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
+    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
 
     layout_bar = dict(title=dict(text='Indicator per City'),
                   yaxis=dict(title='Indicator Value', type=['linear', 'log'][scale]),
                   paper_bgcolor='#f9f9f9'
                   )
 
-    #############################################Second Choropleth######################################################
+    #############################################Second ScatterGeo######################################################
 
-    df_emission_0 = df.loc[df['year'] == year]
+    map_data=[go.Scattergeo(lat=df.loc[df.loc[:,"generation"] == 'Generation_0',"x_coordinate"] , 
+                     lon=df.loc[df.loc[:,"generation"] == 'Generation_0',"y_coordinate"] ,
+                     hoverinfo = 'text',
+                     text = df.loc[df.loc[:,"generation"] == 'Generation_0',"name_city"],
+                     mode="lines+markers",
+                     line=dict(width=1, color="blue"),
+                     marker=dict(size=4, color="red"))]
+    
+    map_layout=go.Layout(
+        title_text="TSP Problem", hovermode="closest",
+        updatemenus=[dict(type="buttons",
+                          buttons=[dict(label="Play",
+                                        method="animate",
+                                        args=[None]),
+                                   dict(label="Pause",
+                                        method="animate",
+                                        args=[None])])])
+    
+    map_frames=[go.Frame(
+        data=[go.Scattergeo(lat=df.loc[df.loc[:,"generation"] == k,"x_coordinate"] , 
+                     lon=df.loc[df.loc[:,"generation"] == k,"y_coordinate"] ,
+                     text = df.loc[df.loc[:,"generation"] == k,"name_city"],
+                     mode="lines+markers",
+                     line=dict(width=((df.loc[df.loc[:,"generation"] == k,"norm_distance"].iloc[0])+0.1)*8, color="blue"),
+                     marker=dict(size=4, color="red"))])
 
-    z = np.log(df_emission_0[gas])
-
-    data_choropleth = dict(type='choropleth',
-                           locations=df_emission_0['country_name'],
-                           # There are three ways to 'merge' your data with the data pre embedded in the map
-                           locationmode='country names',
-                           z=z,
-                           text=df_emission_0['country_name'],
-                           colorscale='inferno',
-                           colorbar=dict(title=str(gas.replace('_', ' ')) + ' (log scaled)'),
-
-                           hovertemplate='Country: %{text} <br>' + str(gas.replace('_', ' ')) + ': %{z}',
-                           name=''
-                           )
-
-    layout_choropleth = dict(geo=dict(scope='world',  # default
-                                      projection=dict(type=['equirectangular', 'orthographic'][projection]
-                                                      ),
-                                      # showland=True,   # default = True
-                                      landcolor='black',
-                                      lakecolor='white',
-                                      showocean=True,  # default = False
-                                      oceancolor='azure',
-                                      bgcolor='#f9f9f9'
-                                      ),
-
-                             title=dict(text='World ' + str(gas.replace('_', ' ')) + ' Choropleth Map on the year ' + str(year),
-                                        x=.5  # Title relative position according to the xaxis, range (0,1)
-
-                                        ),
-                             paper_bgcolor='#f9f9f9'
-                             )
+        for k in df.loc[:,"generation"].unique()]
 
     ############################################Third Scatter Plot######################################################
 
@@ -352,7 +343,7 @@ def plots(n_clicks,year, indicators, gas, scale, projection, sector):
                      )
 
     return go.Figure(data=data_bar, layout=layout_bar), \
-           go.Figure(data=data_choropleth, layout=layout_choropleth),\
+           go.Figure(data=map_data, layout=map_layout, frames=map_frames),\
            go.Figure(data=data_agg, layout=layout_agg)
 
 
