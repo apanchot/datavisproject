@@ -320,8 +320,8 @@ def indicator(cities):
     value_1 = cities_sum[summable_indicators[0]]
     value_2 = cities_sum[summable_indicators[1]]
     
-    return str(summable_indicators[0]) + ': ' + str(value_1) + 'people',\
-           str(summable_indicators[1]) + ': $' + str(value_2) + 'Billion',
+    return str(summable_indicators[0]).title() + ' sum: ' + str(value_1) + ' people',\
+           str(summable_indicators[1]).title() + ' sum: $' + str(value_2) + ' billion',
 
 if __name__ == '__main__':
     app.run_server(debug=True)

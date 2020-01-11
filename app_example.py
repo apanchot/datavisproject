@@ -158,6 +158,7 @@ def plots(n_clicks,year, countries, gas, scale, projection, sector):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
+    
     for country in countries:
         df_bar = df.loc[(df['country_name'] == country)]
 
