@@ -256,7 +256,7 @@ app.layout = html.Div([
         State("lin_log", "value"),
         State("projection", "value")    ]
 )
-def plots(n_clicks, cities, indicator, scale, projection, sector):
+def plots(n_clicks, cities, indicator, scale, projection):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
