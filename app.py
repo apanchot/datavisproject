@@ -6,14 +6,25 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 from math import sin, cos, sqrt, atan2, radians
+from ga import (
+    initial,
+    fitness_aux,
+    fitness_function,
+    tournament_selection,
+    select_parents,
+    order_crossover,
+    inversion_mutation,
+    elitism_replacement,
+    save_best_fitness
+)
 
 #################### Importing all the needed data ####################
 
 #Importing a dataframe that contains latitude and longitude coordinates of 15,493 cities from around the world.
-cities_coordinates = pd.read_csv('worldcities.csv')
+cities_coordinates = pd.read_csv('./data/worldcities.csv')
 
 #Importing a dataframe that contains tourism ranking and arrivals data
-cities_visitors = pd.read_csv('../data/wiki_international_visitors.csv')
+cities_visitors = pd.read_csv('./data/wiki_international_visitors.csv')
 
 #################### Function to calculate the distance between cities ####################
 
@@ -35,25 +46,119 @@ def distance(x, y):
     
     return distance
 
+#################### Selecting some cities ####################
+
+selected = ['Tokyo','Miami','Lima','Rio de Janeiro','Los Angeles','Buenos Aires','Rome','Lisbon','Paris',
+            'Munich','Delhi','Sydney','Moscow','Istanbul','Johannesburg','Madrid','Seoul','London','Bangkok',
+            'Toronto','Dubai','Beijing', 'Abu Dhabi', 'Stockholm']
+selected_cities = cities_coordinates.loc[cities_coordinates['city'].isin(selected),['city','country','lat','lng']]
+selected_cities.drop_duplicates(subset='city', keep='first', inplace=True)
+selected_cities.reset_index(inplace = True, drop = True)
+selected_cities = selected_cities.drop('country', axis = 1)
+selected_cities.set_index('city', inplace = True)
+cities_visitors.set_index('City', inplace = True)
+selected_cities = selected_cities.merge(cities_visitors[['Rank(Euromonitor)',
+                                                   'Arrivals 2018(Euromonitor)',
+                                                   'Growthin arrivals(Euromonitor)',
+                                                   'Income(billions $)(Mastercard)']], left_index=True, right_index=True, how='left')
+
+selected_cities.rename(columns={'Rank(Euromonitor)':'rank',
+                                'Arrivals 2018(Euromonitor)':'arrivals',
+                                'Growthin arrivals(Euromonitor)':'growth',
+                                'Income(billions $)(Mastercard)':'income'}, inplace=True)
+
+#Calculating the distance between them
+data = [[distance(i,j) for j in selected_cities.index] for i in selected_cities.index]
+
+#################### Running the Genetic Algorithm ####################
+
+decision_variables = list(range(len(data)))
+population = initial(decision_variables, 20)
+fitness = fitness_function(population, data)
+best = save_best_fitness(population, fitness)
+generation, best_fitness, fittest = [0], [best[1]], [str(best[0])]
+
+for gen in range(1000):
+    parents = select_parents(population, fitness)
+    offspring = parents.copy()
+    for i in range(0,len(population),2):
+        if (np.random.uniform() < 0.6):
+            offspring[i],offspring[i+1] = order_crossover(parents[i],parents[i+1])
+    for i in range(len(population)):
+        if (np.random.uniform() < 0.6):
+            offspring[i] = inversion_mutation(offspring[i])
+    fitness_offspring = fitness_function(offspring, data)
+    population = elitism_replacement(population, fitness, offspring, fitness_offspring)
+    fitness = fitness_function(population, data)
+    best = save_best_fitness(population, fitness)
+    generation.append(gen+1), best_fitness.append(best[1]), fittest.append(str(best[0]))
+
+generation = pd.Series(generation)
+best_fitness = pd.Series(best_fitness)
+fittest = pd.Series(fittest)
+run = pd.concat([generation, best_fitness, fittest], axis = 1)
+run.columns = ['Generation', 'Fitness', 'Fittest']
+run.drop_duplicates('Fittest', inplace=True)
+
+#################### Preparing the GA results dataframe ####################
+
+#Function to return the cities-path with the best fitness (lowest distance)
+def path(x):
+    best_fitness_aux = run.loc[x,'Fittest'].replace(',','').replace('[','').replace(']','').split(' ')
+    path_best_fitness = [int(i) for i in best_fitness_aux]
+    path_best_fitness = path_best_fitness + [path_best_fitness[0]]
+    return path_best_fitness
+
+generation = lambda x: ['Generation_'+str(run.loc[x,'Generation'])]*len(path(x))
+total_distance = lambda x: [run.loc[x,'Fitness']]*len(path(x))
+
+all_path = []
+all_generation = []
+all_distances = []
+for i in run.loc[:,'Generation']:
+    all_path = all_path + path(i)
+    all_generation = all_generation + generation(i) 
+    all_distances = all_distances + total_distance(i)
+
+all_generation = pd.Series(all_generation)
+all_path = pd.Series(all_path)
+all_distances = pd.Series(all_distances)
+
+x_coordinate = [selected_cities.iloc[i,0] for i in all_path]
+y_coordinate = [selected_cities.iloc[i,1] for i in all_path]
+name_city = [selected_cities.index[i] for i in all_path]
+x_coordinate = pd.Series(x_coordinate)
+y_coordinate = pd.Series(y_coordinate)
+name_city = pd.Series(name_city)
+
+#Create a dataframe with TSP problem GA results, cities names and coordinates
+df = pd.concat([all_generation, all_path, all_distances, name_city, x_coordinate, y_coordinate], axis = 1)
+df.columns = ['generation', 'city', 'distance', 'name_city', 'x_coordinate','y_coordinate']
+
+#Insert a column with the normalized distance (to be used as line width in the graph)
+df['norm_distance'] = ''
+max_ = df['distance'].max()
+min_ = df['distance'].min()
+for idx in df.index:
+    df.at[idx, 'norm_distance'] = (df['distance'].loc[idx] - min_)/(max_ - min_)
+
 ######################################################Data##############################################################
 
-df = pd.read_csv('data/emission_full.csv')
+indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
-gas_names = ['CO2_emissions', 'GHG_emissions', 'CH4_emissions','N2O_emissions', 'F_Gas_emissions']
-
-places= ['energy_emissions', 'industry_emissions',
-       'agriculture_emissions', 'waste_emissions',
-       'land_use_foresty_emissions', 'bunker_fuels_emissions',
-       'electricity_heat_emissions', 'construction_emissions',
-       'transports_emissions', 'other_fuels_emissions']
+#places= ['energy_emissions', 'industry_emissions',
+#       'agriculture_emissions', 'waste_emissions',
+#       'land_use_foresty_emissions', 'bunker_fuels_emissions',
+#       'electricity_heat_emissions', 'construction_emissions',
+#       'transports_emissions', 'other_fuels_emissions']
 
 ######################################################Interactive Components############################################
 
-country_options = [dict(label=country, value=country) for country in df['country_name'].unique()]
+city_options = [dict(label=city, value=city) for city in df['city'].unique()]
 
-gas_options = [dict(label=gas.replace('_', ' '), value=gas) for gas in gas_names]
+indicator_options = [dict(label=indicator.replace('_', ' '), value=indicator) for indicator in indicator_names]
 
-sector_options = [dict(label=place.replace('_', ' '), value=place) for place in places]
+#sector_options = [dict(label=place.replace('_', ' '), value=place) for place in places]
 
 ##################################################APP###############################################################
 
@@ -62,7 +167,7 @@ app = dash.Dash(__name__)
 app.layout = html.Div([
 
     html.Div([
-        html.H1('Emissions Title')
+        html.H1('World Tour Simulator')
     ], className='Title'),
 
     html.Div([
@@ -70,44 +175,35 @@ app.layout = html.Div([
         html.Div([
             dcc.Tabs(id="tabs", value='tab_1', children=[
                 dcc.Tab(label='Tab_1', value='tab_1', children=[
-                                                                    html.Label('Country Choice'),
+                                                                    html.Label('Cities'),
                                                                     dcc.Dropdown(
-                                                                        id='country_drop',
-                                                                        options=country_options,
-                                                                        value=['Portugal'],
+                                                                        id='city_drop',
+                                                                        options=city_options,
+                                                                        value=['Lisbon','Rio de Janeiro'],
                                                                         multi=True
                                                                     ),
 
                                                                     html.Br(),
 
-                                                                    html.Label('Gas Choice'),
+                                                                    html.Label('Tourism Indicator'),
                                                                     dcc.Dropdown(
-                                                                        id='gas_option',
-                                                                        options=gas_options,
-                                                                        value='CO2_emissions',
-                                                                    ),
-
-                                                                    html.Br(),
-
-                                                                    html.Label('Sector Choice'),
-                                                                    dcc.Dropdown(
-                                                                        id='sector_options',
-                                                                        options=sector_options,
-                                                                        value=['energy_emissions', 'waste_emissions'],
-                                                                        multi=True
+                                                                        id='indicator',
+                                                                        options=indicator_options,
+                                                                        value='arrivals',
                                                                     ),
 
                                                                     html.Br(),
                 ]),
                 dcc.Tab(label='Tab_2',value='tab_2', children=[
-                                                            html.Label('Year Slider'),
+                                                            html.Label('City Slider'),
                                                             dcc.Slider(
-                                                                id='year_slider',
-                                                                min=df['year'].min(),
-                                                                max=df['year'].max(),
-                                                                marks={str(i): '{}'.format(str(i)) for i in [1990, 1995, 2000, 2005, 2010, 2014]},
-                                                                value=df['year'].min(),
-                                                                step=1
+                                                                id='city_slider',
+                                                                min=selected_cities.sort_values('city').iloc[0].name,
+                                                                max=selected_cities.sort_values('city').iloc[-1].name,
+                                                                marks={str(i): '{}'.format(str(i)) for i in list(selected_cities.sort_values('city').index.values)},
+                                                                value=selected_cities.sort_values('city').iloc[0].name,
+                                                                step=None,
+                                                                included=False
                                                             ),
 
                                                             html.Br(),
@@ -163,8 +259,6 @@ app.layout = html.Div([
 
 ######################################################Callbacks#########################################################
 
-
-
 @app.callback(
     [
         Output("bar_graph", "figure"),
@@ -175,28 +269,26 @@ app.layout = html.Div([
         Input("button", 'n_clicks')
     ],
     [
-        State("year_slider", "value"),
-        State("country_drop", "value"),
-        State("gas_option", "value"),
+        State("city_slider", "value"),
+        State("city_drop", "value"),
+        State("indicator", "value"),
         State("lin_log", "value"),
-        State("projection", "value"),
-        State("sector_options", "value")
-    ]
+        State("projection", "value")    ]
 )
-def plots(n_clicks,year, countries, gas, scale, projection, sector):
+def plots(n_clicks,year, indicators, gas, scale, projection, sector):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
-    for country in countries:
-        df_bar = df.loc[(df['country_name'] == country)]
+    for indicator in indicators:
+        df_bar = selected_cities.copy()
 
-        x_bar = df_bar['year']
+        x_bar = df_bar['city']
         y_bar = df_bar[gas]
 
-        data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=country))
+        data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
 
-    layout_bar = dict(title=dict(text='Emissions from 1990 until 2015'),
-                  yaxis=dict(title='Emissions', type=['linear', 'log'][scale]),
+    layout_bar = dict(title=dict(text='Indicator per City'),
+                  yaxis=dict(title='Indicator Value', type=['linear', 'log'][scale]),
                   paper_bgcolor='#f9f9f9'
                   )
 
@@ -239,7 +331,7 @@ def plots(n_clicks,year, countries, gas, scale, projection, sector):
 
     ############################################Third Scatter Plot######################################################
 
-    df_loc = df.loc[df['country_name'].isin(countries)].groupby('year').sum().reset_index()
+    df_loc = df.loc[df['country_name'].isin(indicators)].groupby('year').sum().reset_index()
 
     data_agg = []
 
@@ -278,8 +370,8 @@ def plots(n_clicks,year, countries, gas, scale, projection, sector):
         Input("year_slider", "value"),
     ]
 )
-def indicator(countries, year):
-    df_loc = df.loc[df['country_name'].isin(countries)].groupby('year').sum().reset_index()
+def indicator(indicators, year):
+    df_loc = df.loc[df['country_name'].isin(indicators)].groupby('year').sum().reset_index()
 
     value_1 = round(df_loc.loc[df_loc['year'] == year][gas_names[0]].values[0], 2)
     value_2 = round(df_loc.loc[df_loc['year'] == year][gas_names[1]].values[0], 2)
