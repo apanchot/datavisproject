@@ -19,10 +19,10 @@ Rank(Euromonitor),Rank(Mastercard),City,Country,Arrivals 2018(Euromonitor),Arriv
 18,,Pattaya,Thailand,9606400,,0.05,
 19,15,Taipei,Taiwan,9597800,7350000,0.04,9.6
 20,,Mecca,Saudi Arabia,9565200,,-0.02,
-21,36,Guangzhou,China,9004800,3700000,0.00,1.66
+21,36,Guangzhou,China,9004800,3700000,0,1.66
 22,20,Prague,Czech Republic,8948600,5810000,0.02,2.7
 23,,Medina,Saudi Arabia,8547200,,-0.02,
-24,10,Seoul,South Korea,8431400,10200000,0.10,11.3
+24,10,Seoul,South Korea,8431400,10200000,0.1,11.3
 25,13,Amsterdam,Netherlands,8354200,8000000,0.07,4.2
 26,,Agra,India,8138200,,0.23,
 27,24,Miami,United States,8121300,5240000,0.04,8.15
@@ -38,7 +38,7 @@ Rank(Euromonitor),Rank(Mastercard),City,Country,Arrivals 2018(Euromonitor),Arriv
 37,18,Vienna,Austria,6410300,6690000,0.04,4.54
 38,,Johor Bahru,Malaysia,6396000,,0.15,
 39,,Jaipur,India,6383400,,0.21,
-40,,Cancún,Mexico,6041000,,0.00,
+40,,Cancún,Mexico,6041000,,0,
 41,26,Berlin,Germany,5959400,4940000,0.06,5
 42,66,Cairo,Egypt,5754500,1550000,0.31,1.08
 43,46,Athens,Greece,5728400,2680000,0.19,1.62
@@ -70,28 +70,28 @@ Rank(Euromonitor),Rank(Mastercard),City,Country,Arrivals 2018(Euromonitor),Arriv
 69,34,Vancouver,Canada,3212100,3900000,0.07,2.12
 70,,Chiang Mai,Thailand,3196000,,0.02,
 71,64,Copenhagen,Denmark,3069700,1630000,0.04,0.91
-72,33,San Francisco,United States,2901000,3930000,0.00,5.93
+72,33,San Francisco,United States,2901000,3930000,0,5.93
 73,47,Melbourne,Australia,2889000,2650000,0.06,4.94
 74,70,Warsaw,Poland,2850000,1370000,0.02,0.51
 75,,Marrakesh,Morocco,2838100,,0.06,
-76,62,Kolkata,India,2826500,1720000,0.10,1.27
+76,62,Kolkata,India,2826500,1720000,0.1,1.27
 77,,Cebu City,Philippines,2805100,,0.25,
 78,,Auckland,New Zealand,2798900,,0.05,
 79,86,Tel Aviv,Israel,2777000,990000,0.08,1.31
-80,,Guilin,China,2747000,,0.10,
+80,,Guilin,China,2747000,,0.1,
 81,,Honolulu,United States,2737300,,0.02,
 82,,Hurghada,Egypt,2735700,,0.47,
 83,,Kraków,Poland,2732000,,0.04,
 84,,Muğla,Turkey,2723800,,0.37,
 85,57,Buenos Aires,Argentina,2685700,2020000,0.05,1.69
-86,,Chiba,Japan,2683900,,0.10,
+86,,Chiba,Japan,2683900,,0.1,
 87,38,Frankfurt am Main,Germany,2636000,3620000,0.06,3.67
 88,55,Stockholm,Sweden,2604600,2080000,0.05,1.68
 89,32,Lima,Peru,2535400,4030000,0.08,1.44
 90,,Da Nang,Vietnam,2505000,,0.25,
 91,,Batam,Indonesia,2492600,,0.12,
 92,,Nice,France,2466800,,0.06,
-93,,Fukuoka,Japan,2436900,,0.20,
+93,,Fukuoka,Japan,2436900,,0.2,
 94,41,Abu Dhabi,United Arab Emirates,2402800,3140000,0.07,2.65
 95,,Jeju,South Korea,2349200,,-0.03,
 96,,Porto,Portugal,2341300,,0.05,
