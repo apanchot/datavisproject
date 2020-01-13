@@ -27,6 +27,9 @@ cities_coordinates = pd.read_csv('./data/worldcities.csv')
 #Importing a dataframe that contains tourism ranking and arrivals data
 cities_visitors = pd.read_csv('./data/wiki_international_visitors.csv')
 
+#Importing a dataframe with average hotel prices by city
+hotel_prices = pd.read_excel('./data/average_hotel_prices.xlsx')
+
 #################### Function to calculate the distance between cities ####################
 
 def distance(x, y):
@@ -58,36 +61,32 @@ selected_cities.reset_index(inplace = True, drop = True)
 selected_cities = selected_cities.drop('country', axis = 1)
 selected_cities.set_index('city', inplace = True)
 cities_visitors.set_index('City', inplace = True)
+hotel_prices.set_index('city', inplace=True)
 selected_cities = selected_cities.merge(cities_visitors[['Rank(Euromonitor)',
                                                    'Arrivals 2018(Euromonitor)',
                                                    'Growthin arrivals(Euromonitor)',
                                                    'Income(billions $)(Mastercard)']], left_index=True, right_index=True, how='left')
+
+selected_cities = selected_cities.merge(hotel_prices[['hotel_price']], left_index=True, right_index=True, how='left')
 
 selected_cities.rename(columns={'Rank(Euromonitor)':'rank',
                                 'Arrivals 2018(Euromonitor)':'arrivals',
                                 'Growthin arrivals(Euromonitor)':'growth',
                                 'Income(billions $)(Mastercard)':'income'}, inplace=True)
 
+selected_cities['norm_rank'] = (selected_cities['rank'] - selected_cities['rank'].min()) / (selected_cities['rank'].max() - selected_cities['rank'].min())
 
 ######################################################Data##############################################################
 
 indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
-summable_indicators = ['arrivals', 'income']
-
-#places= ['energy_emissions', 'industry_emissions',
-#       'agriculture_emissions', 'waste_emissions',
-#       'land_use_foresty_emissions', 'bunker_fuels_emissions',
-#       'electricity_heat_emissions', 'construction_emissions',
-#       'transports_emissions', 'other_fuels_emissions']
+summable_indicators = ['arrivals', 'income', 'hotel_price']
 
 ######################################################Interactive Components############################################
 
 city_options = [dict(label=city, value=city) for city in selected_cities.index]
 
 indicator_options = [dict(label=indicator, value=indicator) for indicator in indicator_names]
-
-#sector_options = [dict(label=place.replace('_', ' '), value=place) for place in places]
 
 ##################################################APP###############################################################
 
@@ -103,12 +102,12 @@ app.layout = html.Div([
 
         html.Div([
             dcc.Tabs(id="tabs", value='tab_1', children=[
-                dcc.Tab(label='Tab_1', value='tab_1', children=[
+                dcc.Tab(label='Command Panel', value='tab_1', children=[
                                                                     html.Label('Cities'),
                                                                     dcc.Dropdown(
                                                                         id='city_drop',
                                                                         options=city_options,
-                                                                        value=list(selected_cities.index),
+                                                                        value=list(np.random.choice(selected_cities.index, 10, replace=False)),
                                                                         multi=True
                                                                     ),
 
@@ -123,24 +122,6 @@ app.layout = html.Div([
 
                                                                     html.Br(),
                 ]),
-                dcc.Tab(label='Tab_2',value='tab_2', children=[
-
-                                                            html.Label('Linear Log'),
-                                                            dcc.RadioItems(
-                                                                id='lin_log',
-                                                                options=[dict(label='Linear', value=0), dict(label='log', value=1)],
-                                                                value=0
-                                                            ),
-
-                                                            html.Br(),
-
-                                                            html.Label('Projection'),
-                                                            dcc.RadioItems(
-                                                                id='projection',
-                                                                options=[dict(label='Equirectangular', value=0), dict(label='Orthographic', value=1)],
-                                                                value=0
-                                                            )
-                ]),
             ]),
             html.Button('Submit', id="button")
 
@@ -152,9 +133,10 @@ app.layout = html.Div([
 
                 html.Div([html.Label(id='indic_1')], className='mini pretty'),
                 html.Div([html.Label(id='indic_2')], className='mini pretty'),
+                html.Div([html.Label(id='indic_3')], className='mini pretty'),
             ], className='5 containers row'),
 
-            html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
+            html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty')
 
         ], className='column2')
 
@@ -162,7 +144,7 @@ app.layout = html.Div([
 
     html.Div([
 
-        html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty')
+        html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
 
     ], className='row')
 
@@ -179,16 +161,14 @@ app.layout = html.Div([
     ],
     [
         State("city_drop", "value"),
-        State("indicator", "value"),
-        State("lin_log", "value"),
-        State("projection", "value")    ]
+        State("indicator", "value"),   ]
 )
-def plots(n_clicks, cities, indicator, scale, projection):
+def plots(n_clicks, cities, indicator):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
 
-    new_selection = selected_cities.loc[cities,:]
+    new_selection = selected_cities.loc[cities,:].sort_values(by=[indicator])
 
 
     x_bar = new_selection.index
@@ -196,8 +176,8 @@ def plots(n_clicks, cities, indicator, scale, projection):
 
     data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
 
-    layout_bar = dict(title=dict(text='Indicator per City'),
-                  yaxis=dict(title='Indicator Value', type=['linear', 'log'][scale]),
+    layout_bar = dict(title=dict(text=indicator.title() + ' per City'),
+                  yaxis=dict(title=indicator.title() + ' Value'),
                   paper_bgcolor='#f9f9f9'
                   )
 
@@ -275,6 +255,7 @@ def plots(n_clicks, cities, indicator, scale, projection):
     [
         Output("indic_1", "children"),
         Output("indic_2", "children"),
+        Output("indic_3", "children"),
     ],
 
     [
@@ -283,12 +264,15 @@ def plots(n_clicks, cities, indicator, scale, projection):
 )
 def indicator(cities):
     cities_sum = selected_cities.loc[selected_cities.index.isin(cities)].sum()
+    cities_avg = selected_cities.loc[selected_cities.index.isin(cities)].mean()
 
-    value_1 = cities_sum[summable_indicators[0]]
-    value_2 = cities_sum[summable_indicators[1]]
+    value_1 = round(cities_sum[summable_indicators[0]]/1000000,0)
+    value_2 = round(cities_sum[summable_indicators[1]],2)
+    value_3 = round(cities_avg[summable_indicators[2]],2)
     
-    return str(summable_indicators[0]).title() + ' sum: ' + str(value_1) + ' people',\
-           str(summable_indicators[1]).title() + ' sum: $' + str(value_2) + ' billion',
+    return str(summable_indicators[0]).title() + ' sum: ' + str(value_1) + 'million people',\
+           str(summable_indicators[1]).title() + ' sum: $' + str(value_2) + ' billion',\
+           str(summable_indicators[2]).title() + ' mean: $' + str(value_3),
 
 if __name__ == '__main__':
     app.run_server(debug=True)
