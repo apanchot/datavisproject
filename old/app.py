@@ -15,17 +15,16 @@ from ga import (
     order_crossover,
     inversion_mutation,
     elitism_replacement,
-    save_best_fitness,
-    ga_search
+    save_best_fitness
 )
 
 #################### Importing all the needed data ####################
 
 #Importing a dataframe that contains latitude and longitude coordinates of 15,493 cities from around the world.
-cities_coordinates = pd.read_csv('worldcities.csv')
+cities_coordinates = pd.read_csv('./data/worldcities.csv')
 
 #Importing a dataframe that contains tourism ranking and arrivals data
-cities_visitors = pd.read_csv('wiki_international_visitors.csv')
+cities_visitors = pd.read_csv('./data/wiki_international_visitors.csv')
 
 #################### Function to calculate the distance between cities ####################
 
@@ -68,6 +67,80 @@ selected_cities.rename(columns={'Rank(Euromonitor)':'rank',
                                 'Growthin arrivals(Euromonitor)':'growth',
                                 'Income(billions $)(Mastercard)':'income'}, inplace=True)
 
+#Calculating the distance between them
+data = [[distance(i,j) for j in selected_cities.index] for i in selected_cities.index]
+
+#################### Running the Genetic Algorithm ####################
+
+decision_variables = list(range(len(data)))
+population = initial(decision_variables, 20)
+fitness = fitness_function(population, data)
+best = save_best_fitness(population, fitness)
+generation, best_fitness, fittest = [0], [best[1]], [str(best[0])]
+
+for gen in range(1000):
+    parents = select_parents(population, fitness)
+    offspring = parents.copy()
+    for i in range(0,len(population),2):
+        if (np.random.uniform() < 0.6):
+            offspring[i],offspring[i+1] = order_crossover(parents[i],parents[i+1])
+    for i in range(len(population)):
+        if (np.random.uniform() < 0.6):
+            offspring[i] = inversion_mutation(offspring[i])
+    fitness_offspring = fitness_function(offspring, data)
+    population = elitism_replacement(population, fitness, offspring, fitness_offspring)
+    fitness = fitness_function(population, data)
+    best = save_best_fitness(population, fitness)
+    generation.append(gen+1), best_fitness.append(best[1]), fittest.append(str(best[0]))
+
+generation = pd.Series(generation)
+best_fitness = pd.Series(best_fitness)
+fittest = pd.Series(fittest)
+run = pd.concat([generation, best_fitness, fittest], axis = 1)
+run.columns = ['Generation', 'Fitness', 'Fittest']
+run.drop_duplicates('Fittest', inplace=True)
+
+#################### Preparing the GA results dataframe ####################
+
+#Function to return the cities-path with the best fitness (lowest distance)
+def path(x):
+    best_fitness_aux = run.loc[x,'Fittest'].replace(',','').replace('[','').replace(']','').split(' ')
+    path_best_fitness = [int(i) for i in best_fitness_aux]
+    path_best_fitness = path_best_fitness + [path_best_fitness[0]]
+    return path_best_fitness
+
+generation = lambda x: ['Generation_'+str(run.loc[x,'Generation'])]*len(path(x))
+total_distance = lambda x: [run.loc[x,'Fitness']]*len(path(x))
+
+all_path = []
+all_generation = []
+all_distances = []
+for i in run.loc[:,'Generation']:
+    all_path = all_path + path(i)
+    all_generation = all_generation + generation(i) 
+    all_distances = all_distances + total_distance(i)
+
+all_generation = pd.Series(all_generation)
+all_path = pd.Series(all_path)
+all_distances = pd.Series(all_distances)
+
+x_coordinate = [selected_cities.iloc[i,0] for i in all_path]
+y_coordinate = [selected_cities.iloc[i,1] for i in all_path]
+name_city = [selected_cities.index[i] for i in all_path]
+x_coordinate = pd.Series(x_coordinate)
+y_coordinate = pd.Series(y_coordinate)
+name_city = pd.Series(name_city)
+
+#Create a dataframe with TSP problem GA results, cities names and coordinates
+df = pd.concat([all_generation, all_path, all_distances, name_city, x_coordinate, y_coordinate], axis = 1)
+df.columns = ['generation', 'city', 'distance', 'name_city', 'x_coordinate','y_coordinate']
+
+#Insert a column with the normalized distance (to be used as line width in the graph)
+df['norm_distance'] = ''
+max_ = df['distance'].max()
+min_ = df['distance'].min()
+for idx in df.index:
+    df.at[idx, 'norm_distance'] = (df['distance'].loc[idx] - min_)/(max_ - min_)
 
 ######################################################Data##############################################################
 
@@ -108,7 +181,7 @@ app.layout = html.Div([
                                                                     dcc.Dropdown(
                                                                         id='city_drop',
                                                                         options=city_options,
-                                                                        value=list(selected_cities.index),
+                                                                        value=['Lisbon','Rio de Janeiro'],
                                                                         multi=True
                                                                     ),
 
@@ -188,11 +261,8 @@ def plots(n_clicks, cities, indicator, scale, projection):
     ############################################First Bar Plot##########################################################
     data_bar = []
 
-    new_selection = selected_cities.loc[cities,:]
-
-
-    x_bar = new_selection.index
-    y_bar = new_selection[indicator]
+    x_bar = selected_cities.index
+    y_bar = selected_cities[indicator]
 
     data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
 
@@ -202,43 +272,6 @@ def plots(n_clicks, cities, indicator, scale, projection):
                   )
 
     #############################################Second ScatterGeo######################################################
-
-    data = [[distance(i, j) for j in new_selection.index] for i in new_selection.index]
-
-    run = ga_search(data)
-
-    def path(x):
-        best_fitness_aux = run.loc[x, 'Fittest'].replace(',', '').replace('[', '').replace(']', '').split(' ')
-        path_best_fitness = [int(i) for i in best_fitness_aux]
-        path_best_fitness = path_best_fitness + [path_best_fitness[0]]
-        return path_best_fitness
-
-    generation = lambda x: ['Generation_' + str(run.loc[x, 'Generation'])] * len(path(x))
-    total_distance = lambda x: [run.loc[x, 'Fitness']] * len(path(x))
-
-    all_path = []
-    all_generation = []
-    all_distances = []
-    for i in run.loc[:, 'Generation']:
-        all_path = all_path + path(i)
-        all_generation = all_generation + generation(i)
-        all_distances = all_distances + total_distance(i)
-
-    all_generation = pd.Series(all_generation)
-    all_path = pd.Series(all_path)
-    all_distances = pd.Series(all_distances)
-
-    x_coordinate = [new_selection.iloc[i, 0] for i in all_path]
-    y_coordinate = [new_selection.iloc[i, 1] for i in all_path]
-    name_city = [new_selection.index[i] for i in all_path]
-    x_coordinate = pd.Series(x_coordinate)
-    y_coordinate = pd.Series(y_coordinate)
-    name_city = pd.Series(name_city)
-
-    df = pd.concat([all_generation, all_path, all_distances, name_city, x_coordinate, y_coordinate], axis=1)
-    df.columns = ['generation', 'city', 'distance', 'name_city', 'x_coordinate', 'y_coordinate']
-
-    df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
 
     map_data=[go.Scattergeo(lat=df.loc[df.loc[:,"generation"] == 'Generation_0',"x_coordinate"] , 
                      lon=df.loc[df.loc[:,"generation"] == 'Generation_0',"y_coordinate"] ,
