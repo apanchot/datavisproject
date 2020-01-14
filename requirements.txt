@@ -8,3 +8,4 @@ dash-core-components
 pandas
 numpy
 google-cloud-firestore
+xlrd
