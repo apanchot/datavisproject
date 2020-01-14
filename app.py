@@ -91,38 +91,47 @@ indicator_options = [dict(label=indicator, value=indicator) for indicator in ind
 ##################################################APP###############################################################
 
 app = dash.Dash(__name__)
-
+server = app.server#!!!!!!!!!!!!!!
 app.layout = html.Div([
 
     html.Div([
-        html.H1('World Tour Simulator')
-    ], className='Title'),
+        html.Div([
+            html.Img(src=app.get_asset_url('nova_logo.png'),style={'height':'50%'}),
+        ], className='column5'),
+
+        html.Div([
+            html.H1('World Tour Simulator'),
+        ], className='column6'),
+
+        html.Div([
+            html.Img(src=app.get_asset_url('Rotating_globe.gif'), style={'height':'40%', 'align': 'right'}),
+        ], className='column7'),
+
+    ], className='Title row2'),
 
     html.Div([
 
         html.Div([
-            dcc.Tabs(id="tabs", value='tab_1', children=[
-                dcc.Tab(label='Command Panel', value='tab_1', children=[
-                                                                    html.Label('Cities'),
-                                                                    dcc.Dropdown(
-                                                                        id='city_drop',
-                                                                        options=city_options,
-                                                                        value=list(np.random.choice(selected_cities.index, 10, replace=False)),
-                                                                        multi=True
-                                                                    ),
+            html.Label('Select Cities to Visit'),
+            dcc.Dropdown(
+                id='city_drop',
+                options=city_options,
+                value=list(np.random.choice(selected_cities.index, 10, replace=False)),
+                multi=True
+            ),
 
-                                                                    html.Br(),
+            html.Br(),
 
-                                                                    html.Label('Tourism Indicator'),
-                                                                    dcc.Dropdown(
-                                                                        id='indicator',
-                                                                        options=indicator_options,
-                                                                        value='arrivals',
-                                                                    ),
+            html.Label('Select Indicators'),
 
-                                                                    html.Br(),
-                ]),
-            ]),
+            dcc.Dropdown(
+                id='indicator',
+                options=indicator_options,
+                value='arrivals',
+            ),
+
+            html.Br(),
+
             html.Button('Submit', id="button")
 
         ], className='column1 pretty'),
@@ -134,13 +143,15 @@ app.layout = html.Div([
                 html.Div([html.Label(id='indic_1')], className='mini pretty'),
                 html.Div([html.Label(id='indic_2')], className='mini pretty'),
                 html.Div([html.Label(id='indic_3')], className='mini pretty'),
-            ], className='5 containers row'),
-
-            html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty')
+                #html.Div([html.Label(id='indic_4')], className='mini pretty'),
+                #html.Div([html.Label(id='indic_5')], className='mini pretty'),
+            ])
 
         ], className='column2')
 
     ], className='row'),
+
+    html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty'),
 
     html.Div([
 
@@ -220,21 +231,41 @@ def plots(n_clicks, cities, indicator):
 
     df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
 
+    df = df.merge(selected_cities['rank'], left_on='name_city', right_on='city', how='left')
+
     map_data=[go.Scattergeo(lat=df.loc[df.loc[:,"generation"] == 'Generation_0',"x_coordinate"] , 
                      lon=df.loc[df.loc[:,"generation"] == 'Generation_0',"y_coordinate"] ,
                      hoverinfo = 'text',
                      text = df.loc[df.loc[:,"generation"] == 'Generation_0',"name_city"],
                      mode="lines+markers",
-                     line=dict(width=1, color="blue"),
-                     marker=dict(size=4, color="red"))]
+                     line=dict(
+                         width=1,
+                         color="blue",
+                     ),
+                     marker=dict(
+                         size=8,
+                         #color="red",
+                         colorscale='RdBu',
+                         cmin = df['rank'].min(),
+                         color=df.loc[df.loc[:, "generation"] == 'Generation_0', "rank"],
+                         cmax = df['rank'].max(),
+                         reversescale = True,
+                         colorbar=dict(title="Tourism Ranking<br>2018")
+                            ))]
     
     map_layout=go.Layout(
-        title_text="Optimized World Tour", hovermode="closest",
+        #title_text="Optimized World Tour",
+        hovermode="closest",
+        #width=1400,
+        margin=go.layout.Margin(
+            l=5,
+            r=5,
+            b=10,
+            t=50,
+            #pad=4
+        ),
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
-                                        method="animate",
-                                        args=[None]),
-                                   dict(label="Pause",
                                         method="animate",
                                         args=[None])])])
     
@@ -244,7 +275,15 @@ def plots(n_clicks, cities, indicator):
                      text = df.loc[df.loc[:,"generation"] == k,"name_city"],
                      mode="lines+markers",
                      line=dict(width=((df.loc[df.loc[:,"generation"] == k,"norm_distance"].iloc[0])+0.1)*8, color="blue"),
-                     marker=dict(size=4, color="red"))])
+                     marker=dict(
+                         size=8,
+                         #color="red",
+                         colorscale='RdBu',
+                         cmin=df['rank'].min(),
+                         color=df.loc[df.loc[:, "generation"] == k, "rank"],
+                         cmax=df['rank'].max(),
+                         reversescale=True,
+                         colorbar=dict(title="Tourism Ranking<br>2018")))])
 
         for k in df.loc[:,"generation"].unique()]
 
@@ -256,6 +295,8 @@ def plots(n_clicks, cities, indicator):
         Output("indic_1", "children"),
         Output("indic_2", "children"),
         Output("indic_3", "children"),
+        #Output("indic_4", "children"),
+        #Output("indic_5", "children"),
     ],
 
     [
@@ -265,14 +306,26 @@ def plots(n_clicks, cities, indicator):
 def indicator(cities):
     cities_sum = selected_cities.loc[selected_cities.index.isin(cities)].sum()
     cities_avg = selected_cities.loc[selected_cities.index.isin(cities)].mean()
+    cities_max = selected_cities.loc[selected_cities.index.isin(cities)].max()
+    cities_min = selected_cities.loc[selected_cities.index.isin(cities)].min()
 
     value_1 = round(cities_sum[summable_indicators[0]]/1000000,0)
     value_2 = round(cities_sum[summable_indicators[1]],2)
     value_3 = round(cities_avg[summable_indicators[2]],2)
+    value_4 = round(cities_max[summable_indicators[2]], 2)
+    value_5 = round(cities_min[summable_indicators[2]], 2)
     
-    return str(summable_indicators[0]).title() + ' sum: ' + str(value_1) + 'million people',\
-           str(summable_indicators[1]).title() + ' sum: $' + str(value_2) + ' billion',\
-           str(summable_indicators[2]).title() + ' mean: $' + str(value_3),
+    return ' Average Hotel Price: $' + str(value_3), \
+           ' Maximum Hotel Price: $' + str(value_4), \
+           ' Minimum Hotel Price: $' + str(value_5),
+
+           #str(summable_indicators[0]).title() + ' sum: ' + str(value_1) + 'million people',\
+           #str(summable_indicators[1]).title() + ' sum: $' + str(value_2) + ' billion',\
+           #str(summable_indicators[2]).title() + ' Average Hotel Price: $' + str(value_3), \
+           #str(summable_indicators[2]).title() + ' Maximum Hotel Price: $' + str(value_4), \
+           #str(summable_indicators[2]).title() + ' Minimum Hotel Price: $' + str(value_5),
+
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
