@@ -1,0 +1,49 @@
+.pretty {
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  margin: 10px;
+  padding: 15px;
+  box-shadow: 2px 2px 2px lightgrey;
+}
+
+.row {
+  display: flex;
+}
+
+.column1 {
+  flex: 30%;
+}
+
+.column2 {
+  flex: 70%;
+}
+
+.column3 {
+  flex: 50%;
+}
+
+.mini {
+  flex: 15%;
+  margin: 5%;
+}
+
+#scattergeo .Select-control {
+input[type="button"] {
+  display: inline-block;
+  height: 38px;
+  padding: 0 30px;
+  color: #555;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 38px;
+  letter-spacing: .1rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  background-color: transparent;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  cursor: pointer;
+  box-sizing: border-box; }
+}

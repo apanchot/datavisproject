@@ -10,17 +10,39 @@
   display: flex;
 }
 
+.row2 {
+  display: flex;
+  max-hight: 1000px
+}
+
 .column1 {
-  flex: 30%;
+  flex: 60%;
 }
 
 .column2 {
-  flex: 70%;
+  flex: 40%;
 }
 
 .column3 {
-  flex: 50%;
+  flex: 100%;
 }
+
+.column5 {
+  flex: 10%;
+  hight: 100px;
+}
+
+.column6 {
+  flex: 80%;
+  hight: 100px;
+}
+
+.column7 {
+  flex: 10%;
+  hight: 100px;
+}
+
+
 
 .mini {
   flex: 15%;
