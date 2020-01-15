@@ -173,7 +173,8 @@ app.layout = html.Div([
             ),
 
             html.Br(),
-
+        #]),
+    #]),
             html.Button('Submit', id="button")
 
         ], className='column1 pretty'),
@@ -183,8 +184,9 @@ app.layout = html.Div([
             html.Div([html.Label('Cities above the minimum rank:'), html.Label(id='indic_0')], className='mini pretty'),        
           
             html.Div([
-                html.Div([html.Label(id='indic_2')], className='mini pretty'),    
+
                 html.Div([html.Label(id='indic_1')], className='mini pretty'),
+                html.Div([html.Label(id='indic_2')], className='mini pretty'),
                 html.Div([html.Label(id='indic_3')], className='mini pretty'),
                 #html.Div([html.Label(id='indic_4')], className='mini pretty'),
                 #html.Div([html.Label(id='indic_5')], className='mini pretty'),
@@ -199,8 +201,7 @@ app.layout = html.Div([
     html.Div([
 
         html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty'),
-        html.Div([dcc.Graph(id='bubbles')], className='bar_plot pretty'),
-        html.Div([dcc.Graph(id='radar')], className='bar_plot pretty')
+        html.Div([dcc.Graph(id='bubbles')], className='bar_plot pretty')
 
     ])
 
@@ -212,9 +213,7 @@ app.layout = html.Div([
     [
         Output("bar_graph", "figure"),
         Output("scattergeo", "figure"),
-        Output("bubbles", "figure"),
-        Output("radar", "figure")
-
+        Output("bubbles", "figure")
     ],
     [
         Input("button", 'n_clicks')
@@ -362,21 +361,23 @@ def plots(n_clicks, cities, indicator, rank):
         for k in df.loc[:,"generation"].unique()]
 
 ############################################Bubble Scatter Plot##########################################################
-    bubble_data = []
+    bubble_x = new_selection['hotel_price']
+    bubble_y = new_selection['tickets']
+    bubble_size = new_selection['rank'].pow(-1)
 
-    for cont in new_selection.loc[:,'continent'].unique():
-        new_selection_continent = new_selection.loc[new_selection.loc[:,'continent'] == cont,:]
-        bubble_data.append(dict(x=new_selection_continent['hotel_price'],
-                                y=new_selection_continent['tickets'],
-                                # color=list(new_selection_continent['continent']),
-                                mode='markers',
-                                name=cont,
-                                marker={
-                                        'size':new_selection_continent['rank'].pow(-1),
-                                        'sizemode':'area',
-                                        'sizeref':2.*max(new_selection_continent['rank'].pow(-1))/(40.**2),
-                                        'sizemin':4,
-                                }))
+    bubble_data = [{'x':bubble_x,
+                    'y':bubble_y,
+                    #'color': bubble_color,
+                    'mode':'markers',
+                    'marker':{
+                        'size':bubble_size,
+                        'sizemode':'area',
+                        'sizeref':2.*max(bubble_size)/(40.**2),
+                        'sizemin':4,
+                        'color': 'Red',
+                        },
+                    #'marker_size': 10,     
+                  }]
 
     bubble_layout = dict(
                         title=dict(text='Lodging and Transportation Costs (US$)',
@@ -397,68 +398,16 @@ def plots(n_clicks, cities, indicator, rank):
                         paper_bgcolor='#000000',
                         plot_bgcolor='rgb(243, 243, 243)',
                         font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif'),
-                        legend=dict(itemsizing="constant")
+                        legend=dict(x=.1, y=1,itemsizing='constant')
                         )
-
-############################################Radar Scatter Plot##########################################################
-
-    if (new_selection['hotel_price'].max() - new_selection['hotel_price'].min() != 0):
-        new_selection['radar_hp'] = (new_selection['hotel_price'] - new_selection['hotel_price'].min()) / (new_selection['hotel_price'].max() - new_selection['hotel_price'].min())
-    else:
-        new_selection['radar_hp'] = 0
     
-    if (new_selection['tickets'].max() - new_selection['tickets'].min() != 0):
-        new_selection['radar_tix'] = (new_selection['tickets'] - new_selection['tickets'].min()) / (new_selection['tickets'].max() - new_selection['tickets'].min())
-    else:
-        new_selection['radar_tix'] = 0
-    
-    if (new_selection['rank'].max() - new_selection['rank'].min() != 0):
-        new_selection['radar_rank'] = (new_selection['rank'] - new_selection['rank'].min()) / (new_selection['rank'].max() - new_selection['rank'].min())
-    else:
-        new_selection['radar_rank'] = 0
 
-    if (new_selection['income'].max() - new_selection['income'].min() != 0):
-        new_selection['radar_income'] = (new_selection['income'] - new_selection['income'].min()) / (new_selection['income'].max() - new_selection['income'].min())
-    else:
-        new_selection['radar_income'] = 0
-
-    if (new_selection['growth'].max() - new_selection['growth'].min() != 0):
-        new_selection['radar_growth'] = (new_selection['growth'] - new_selection['growth'].min()) / (new_selection['growth'].max() - new_selection['growth'].min())
-    else:
-        new_selection['radar_growth'] = 0
-
-    radar_cate = ['Hotel Price','Tickets', 'Rank','Income','Growth']
-
-    citiess=[i for i in new_selection.index.values]
-    citlen=len(citiess)
-    radar_data=[go.Scatterpolar(
-        r= [new_selection.loc[i,'radar_hp'],
-            new_selection.loc[i,'radar_tix'],
-            new_selection.loc[i,'radar_rank'],
-            new_selection.loc[i,'radar_income'],
-            new_selection.loc[i,'radar_growth']],
-        theta=radar_cate,
-        fill='toself',
-        name=i
-    ) for i in citiess]
-
-    radar_layout = dict(polar=dict(
-        radialaxis=dict(
-            visible=False, color='#aa0000'),
-        angularaxis=dict(color='#ffc40e')
-    ),
-        showlegend=False,
-        paper_bgcolor='#000000',
-        plot_bgcolor='#000000',
-        font=dict(size=24, family='Open Sans, sans-serif')
-    )
 
 #########################################################################################################################
 
     return go.Figure(data=data_bar, layout=layout_bar), \
            go.Figure(data=map_data, layout=map_layout, frames=map_frames), \
-           go.Figure(data=bubble_data, layout=bubble_layout), \
-           go.Figure(data=radar_data, layout=radar_layout)
+           go.Figure(data=bubble_data, layout=bubble_layout)
 
 @app.callback(
     [
