@@ -50,6 +50,7 @@ body {
     z-index:1000;
 }
 
+
 .pretty {
   border-radius: 5px;
   background-color: #171a27;
@@ -57,10 +58,19 @@ body {
   border: solid 2px red;
   margin: 10px;
   padding: 15px;
-  border: 1px solid #6b6b6b;
+  border: 3px solid #6b6b6b;
+  color: #ffc40e;
 }
 
-
+.pretty_2 {
+  border-radius: 5px;
+  background-color: #6b6b6b;
+  border-color: red;
+  border: solid 2px red;
+  margin: 3px;
+  padding: 5px;
+  border: 1px solid #6b6b6b;
+}
 
 .row {
   display: flex;
@@ -111,8 +121,9 @@ input[type="button"] {
   display: inline-block;
   height: 38px;
   padding: 0 30px;
-  color: #ffffff;
+  color: #ffc40e;
   text-align: center;
+  font-color:#ffc40e;
   font-size: 11px;
   font-weight: 600;
   line-height: 38px;

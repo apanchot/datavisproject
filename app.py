@@ -122,6 +122,31 @@ indicator_options = [dict(label=indicator, value=indicator) for indicator in ind
 ##################################################APP###############################################################
 
 app = dash.Dash(__name__)
+
+tabs_styles = {
+    'height': '10px'
+}
+
+tab_style = {
+    'borderBottom': '1px solid #6b6b6b',
+    'borderTop': '1px solid #6b6b6b',
+    'borderRight': '1px solid #6b6b6b',
+    'borderLeft': '1px solid #6b6b6b',
+    'padding': '4px',
+    'backgroundColor': 'black',
+    'color': '#ffc40e',
+    'fontWeight': 'bold'
+}
+
+tab_selected_style = {
+    'borderBottom': '1px solid #6b6b6b',
+    'borderTop': '1px solid #6b6b6b',
+    'borderRight': '1px solid #6b6b6b',
+    'borderLeft': '1px solid #6b6b6b',
+    'backgroundColor': '#0972b3',
+    'color': '#ffc40e',
+    'padding': '4px'
+}
 server = app.server#!!!!!!!!!!!!!!
 app.layout = html.Div([
 
@@ -194,15 +219,26 @@ app.layout = html.Div([
 
     ], className='row'),
 
-    html.Div([dcc.Graph(id='scattergeo')], className='column3 pretty'),
 
     html.Div([
+        html.Br(),
+        dcc.Tabs(id="tabs", value='tab_1', children=[
+            dcc.Tab(label='Optimal Route', value='tab_1', style=tab_style, selected_style=tab_selected_style, children=[
+                html.Div([dcc.Graph(id='scattergeo')], className='pretty_2')
+            ]),
+            dcc.Tab(label='Indicators', value='tab_2', style=tab_style, selected_style=tab_selected_style, children=[
+                html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty_2'),
+            ]),
+            dcc.Tab(label='Public Transportation', value='tab_3', style=tab_style, selected_style=tab_selected_style, children=[
+                html.Div([dcc.Graph(id='bubbles')], className='bar_plot pretty_2')
+            ]),
+            dcc.Tab(label='Radar Plot', value='tab_4', style=tab_style, selected_style=tab_selected_style, children=[
+                html.Div([dcc.Graph(id='radar')], className='bar_plot pretty_2')
+            ])
+        ])
+    ],className='column3')
 
-        html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty'),
-        html.Div([dcc.Graph(id='bubbles')], className='bar_plot pretty'),
-        html.Div([dcc.Graph(id='radar')], className='bar_plot pretty')
 
-    ])
 
 ])
 
@@ -306,8 +342,9 @@ def plots(n_clicks, cities, indicator, rank):
                          color=df.loc[df.loc[:, "generation"] == 'Generation_0', "rank"],
                          cmax = df['rank'].max(),
                          reversescale = True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")
-                            ))]
+                         colorbar=dict(title=dict(text="Arrivals Ranking", side="top"),
+                                       xanchor="right", yanchor="bottom", y=0.03, x=0.97)
+                     ))]
     
     map_layout=go.Layout(
         title=dict(text='Optimized World Tour',
@@ -328,6 +365,8 @@ def plots(n_clicks, cities, indicator, rank):
         font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif'),
         paper_bgcolor = 'black',
         geo = dict(
+            projection=dict(type="natural earth"),
+            showframe=False,
             showland = True,
             showcountries = True,
             showocean = True,
@@ -338,10 +377,10 @@ def plots(n_clicks, cities, indicator, rank):
             bgcolor = 'black',
             oceancolor = 'black'
             ),
-        updatemenus=[dict(type="buttons",
-                          buttons=[dict(label="Play",
+        updatemenus=[dict(type="buttons",bgcolor="#0972b3", font = dict(color='#ffc40e'),
+                          buttons=[dict(label="Calculate Best Route",
                                         method="animate",
-                                        args=[None])])])
+                                        args=[None])], xanchor="right", yanchor="bottom", y=0.5, x=0.160)])
     
     map_frames=[go.Frame(
         data=[go.Scattergeo(lat=df.loc[df.loc[:,"generation"] == k,"x_coordinate"] , 
@@ -357,7 +396,8 @@ def plots(n_clicks, cities, indicator, rank):
                          color=df.loc[df.loc[:, "generation"] == k, "rank"],
                          cmax=df['rank'].max(),
                          reversescale=True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")))])
+                         colorbar=dict(title=dict(text="Arrivals Ranking", side="top"),
+                                       xanchor="right", yanchor="bottom", y=0.03, x=0.97)))])
 
         for k in df.loc[:,"generation"].unique()]
 
