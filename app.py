@@ -30,6 +30,9 @@ cities_visitors = pd.read_csv('./data/wiki_international_visitors.csv')
 #Importing a dataframe with average hotel prices by city
 hotel_prices = pd.read_excel('./data/average_hotel_prices.xlsx')
 
+#Importing a dataframe with public transportation costs
+transportation = pd.read_excel('./data/transportation_costs.xlsx')
+
 #################### Function to calculate the distance between cities ####################
 
 def distance(x, y):
@@ -62,6 +65,7 @@ selected_cities = selected_cities.drop('country', axis = 1)
 selected_cities.set_index('city', inplace = True)
 cities_visitors.set_index('City', inplace = True)
 hotel_prices.set_index('city', inplace=True)
+transportation.set_index('city', inplace=True)
 selected_cities = selected_cities.merge(cities_visitors[['Rank(Euromonitor)',
                                                    'Arrivals 2018(Euromonitor)',
                                                    'Growthin arrivals(Euromonitor)',
@@ -69,10 +73,13 @@ selected_cities = selected_cities.merge(cities_visitors[['Rank(Euromonitor)',
 
 selected_cities = selected_cities.merge(hotel_prices[['hotel_price']], left_index=True, right_index=True, how='left')
 
+selected_cities = selected_cities.merge(transportation[['average_ticket_dollars']], left_index=True, right_index=True, how='left')
+
 selected_cities.rename(columns={'Rank(Euromonitor)':'rank',
                                 'Arrivals 2018(Euromonitor)':'arrivals',
                                 'Growthin arrivals(Euromonitor)':'growth',
-                                'Income(billions $)(Mastercard)':'income'}, inplace=True)
+                                'Income(billions $)(Mastercard)':'income',
+                                'average_ticket_dollars': 'tickets'}, inplace=True)
 
 selected_cities['norm_rank'] = (selected_cities['rank'] - selected_cities['rank'].min()) / (selected_cities['rank'].max() - selected_cities['rank'].min())
 
@@ -80,7 +87,7 @@ selected_cities['norm_rank'] = (selected_cities['rank'] - selected_cities['rank'
 
 indicator_names = ['rank', 'arrivals', 'growth', 'income']
 
-summable_indicators = ['arrivals', 'income', 'hotel_price']
+summable_indicators = ['arrivals', 'income', 'hotel_price', 'tickets']
 
 ######################################################Interactive Components############################################
 
@@ -169,7 +176,8 @@ app.layout = html.Div([
 
     html.Div([
 
-        html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
+        html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty'),
+        html.Div([dcc.Graph(id='bubbles')], className='bar_plot pretty')
 
     ])
 
@@ -180,7 +188,8 @@ app.layout = html.Div([
 @app.callback(
     [
         Output("bar_graph", "figure"),
-        Output("scattergeo", "figure") ,
+        Output("scattergeo", "figure"),
+        Output("bubbles", "figure")
     ],
     [
         Input("button", 'n_clicks')
@@ -309,8 +318,47 @@ def plots(n_clicks, cities, indicator, rank):
 
         for k in df.loc[:,"generation"].unique()]
 
+############################################Bubble Scatter Plot##########################################################
+    bubble_x = new_selection['hotel_price']
+    bubble_y = new_selection['tickets']
+    bubble_size = new_selection['rank'].pow(-1)
+    print(bubble_size)
+
+    bubble_data = [{
+                    'x':bubble_x,
+                    'y':bubble_y,
+                    'mode':'markers',
+                    'marker':{
+                        'size':bubble_size,
+                        'sizemode':'area',
+                        'sizeref':2.*max(bubble_size)/(40.**2),
+                        'sizemin':4
+                    }
+    }]
+
+    bubble_layout = dict(
+                        title='Lodging and Transportation Costs (US$)',
+                        xaxis=dict(
+                            title='Hotel Room Price',
+                            gridcolor='white',
+                            gridwidth=2,
+                        ),
+                        yaxis=dict(
+                            title='Public Transportation Single Round Fare',
+                            gridcolor='white',
+                            gridwidth=2,
+                        ),
+                        paper_bgcolor='rgb(243, 243, 243)',
+                        plot_bgcolor='rgb(243, 243, 243)',
+                        )
+    
+
+
+#########################################################################################################################
+
     return go.Figure(data=data_bar, layout=layout_bar), \
-           go.Figure(data=map_data, layout=map_layout, frames=map_frames),
+           go.Figure(data=map_data, layout=map_layout, frames=map_frames), \
+           go.Figure(data=bubble_data, layout=bubble_layout)
 
 @app.callback(
     [
