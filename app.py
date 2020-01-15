@@ -369,10 +369,11 @@ def plots(n_clicks, cities, indicator, rank):
             showframe=False,
             showland = True,
             showcountries = True,
+            countrycolor='black',
             showocean = True,
-            countrywidth = 0.5,
+            countrywidth = 0.1,
             landcolor = 'rgb(204, 204, 204)',
-            countrycolor = 'rgb(204, 204, 204)',
+            #countrycolor = 'rgb(204, 204, 204)',
             lakecolor = 'rgb(0, 255, 255)',
             bgcolor = 'black',
             oceancolor = 'black'
