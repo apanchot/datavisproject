@@ -104,7 +104,7 @@ app.layout = html.Div([
         ], className='column6'),
 
         html.Div([
-            html.Img(src=app.get_asset_url('Rotating_globe.gif'), style={'height':'40%', 'align': 'right'}),
+            html.Img(src=app.get_asset_url('Rotating_globe.gif'), style={'height':'50%', 'align': 'right'}),
         ], className='column7'),
 
     ], className='Title row2'),
@@ -117,7 +117,7 @@ app.layout = html.Div([
                 id='city_drop',
                 options=city_options,
                 value=list(np.random.choice(selected_cities.index, 10, replace=False)),
-                multi=True
+                multi=True,
             ),
 
             html.Br(),
@@ -132,7 +132,7 @@ app.layout = html.Div([
 
             html.Br(),
 
-            html.Button('Submit', id="button")
+            html.Button('Submit', id="button"),
 
         ], className='column1 pretty'),
 
@@ -157,7 +157,7 @@ app.layout = html.Div([
 
         html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
 
-    ], className='row')
+    ])
 
 ])
 
@@ -166,7 +166,8 @@ app.layout = html.Div([
 @app.callback(
     [
         Output("bar_graph", "figure"),
-        Output("scattergeo", "figure")    ],
+        Output("scattergeo", "figure") ,
+        ],
     [
         Input("button", 'n_clicks')
     ],
@@ -185,11 +186,14 @@ def plots(n_clicks, cities, indicator):
     x_bar = new_selection.index
     y_bar = new_selection[indicator]
 
-    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator))
+    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator,marker=dict(color='#e25c64')))
 
-    layout_bar = dict(title=dict(text=indicator.title() + ' per City'),
-                  yaxis=dict(title=indicator.title() + ' Value'),
-                  paper_bgcolor='#f9f9f9'
+    layout_bar = dict(title=dict(text=indicator.title() + ' per City',font=dict(color='#ffffff')),
+                  yaxis=dict(title=indicator.title() + ' Value',color='#ffffff'),
+                  xaxis=dict(title='Cities', color='#ffffff'),
+                  paper_bgcolor='#171a27',
+                  plot_bgcolor='#171a27',
+
                   )
 
     #############################################Second ScatterGeo######################################################
@@ -250,7 +254,7 @@ def plots(n_clicks, cities, indicator):
                          color=df.loc[df.loc[:, "generation"] == 'Generation_0', "rank"],
                          cmax = df['rank'].max(),
                          reversescale = True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")
+                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))
                             ))]
     
     map_layout=go.Layout(
@@ -264,6 +268,8 @@ def plots(n_clicks, cities, indicator):
             t=50,
             #pad=4
         ),
+        paper_bgcolor='#171a27',
+        plot_bgcolor='#171a27',
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
                                         method="animate",
@@ -283,12 +289,13 @@ def plots(n_clicks, cities, indicator):
                          color=df.loc[df.loc[:, "generation"] == k, "rank"],
                          cmax=df['rank'].max(),
                          reversescale=True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")))])
+
+                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))))])
 
         for k in df.loc[:,"generation"].unique()]
 
     return go.Figure(data=data_bar, layout=layout_bar), \
-           go.Figure(data=map_data, layout=map_layout, frames=map_frames)
+              go.Figure(data=map_data, layout=map_layout, frames=map_frames),
 
 @app.callback(
     [
