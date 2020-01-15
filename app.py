@@ -96,7 +96,7 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Img(src=app.get_asset_url('nova_logo.png'),style={'height':'50%'}),
+            html.Img(src=app.get_asset_url('logo3.jpg'),style={'height':'50%'}),
         ], className='column5'),
 
         html.Div([
@@ -204,11 +204,11 @@ def plots(n_clicks, cities, indicator, rank):
 
     data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator,marker=dict(color='#e25c64')))
 
-    layout_bar = dict(title=dict(text=indicator.title() + ' per City',font=dict(color='#ffffff')),
-                  yaxis=dict(title=indicator.title() + ' Value',color='#ffffff'),
-                  xaxis=dict(title='Cities', color='#ffffff'),
-                  paper_bgcolor='#171a27',
-                  plot_bgcolor='#171a27',
+    layout_bar = dict(title=dict(text=indicator.title() + ' per City',font=dict(color='#ffc40e')),
+                  yaxis=dict(title=indicator.title() + ' Value',color='#ffc40e'),
+                  xaxis=dict(title='Cities', color='#ffc40e'),
+                  paper_bgcolor='#000000',
+                  plot_bgcolor='#000000',
                   )
 
     #############################################Second ScatterGeo######################################################

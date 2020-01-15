@@ -3,8 +3,8 @@ body {
     /* general styles */
     padding: 30px;
     font-family: 'Open Sans', sans-serif;
-    background: #1e212f;
-    color: #ff0000;
+    background: #000000;
+    color: #ffc40e;
 }
 
 #city_drop{
@@ -84,6 +84,7 @@ body {
 .column5 {
   flex: 10%;
   hight: 100px;
+  text-align: left;
 }
 
 .column6 {
