@@ -415,7 +415,7 @@ def plots(n_clicks, cities, indicator, rank):
                                                                     hotel_price='{0:.2f}'.format(row['hotel_price'])))
 
     new_selection['text'] = hover_text
-    new_selection['size_bubble'] = 50/new_selection['rank']
+    new_selection['size_bubble'] = (101 - new_selection['rank'])/2
 
     for cont in new_selection.loc[:,'continent'].unique():
         new_selection_continent = new_selection.loc[new_selection.loc[:,'continent'] == cont,:]
@@ -423,12 +423,7 @@ def plots(n_clicks, cities, indicator, rank):
                                 y=new_selection_continent['tickets'],
                                 mode='markers',
                                 name=cont,
-                                marker={
-                                        'size':new_selection['size_bubble'],
-                                        'sizemode':'area',
-                                        'sizeref':2.*max(new_selection['rank'].pow(-1))/(40.**2),
-                                        'sizemin':4,
-                                },
+                                marker_size=new_selection_continent['size_bubble'],
                                 text=new_selection_continent['text']
                                 ))
 
