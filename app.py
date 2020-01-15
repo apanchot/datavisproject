@@ -131,13 +131,27 @@ app.layout = html.Div([
             ),
 
             html.Br(),
+            html.Label('What\'s the minimum ranking?'),
+            dcc.Slider(
+            id='rank_slider',
+            min=0,
+            max=100,
+            marks={str(i): '{}'.format(str(i)) for i in list(np.linspace(1,100,11, dtype = int))},
+            value=100,
+            step=None
+            ),
 
-            html.Button('Submit', id="button"),
+            html.Br(),
+        #]),
+    #]),
+            html.Button('Submit', id="button")
 
         ], className='column1 pretty'),
 
-        html.Div([
+    html.Div([
 
+            html.Div([html.Label('Cities above the minimum rank:'), html.Label(id='indic_0')], className='mini pretty'),        
+          
             html.Div([
 
                 html.Div([html.Label(id='indic_1')], className='mini pretty'),
@@ -167,21 +181,23 @@ app.layout = html.Div([
     [
         Output("bar_graph", "figure"),
         Output("scattergeo", "figure") ,
-        ],
+    ],
     [
         Input("button", 'n_clicks')
     ],
     [
         State("city_drop", "value"),
-        State("indicator", "value"),   ]
+        State("indicator", "value"),
+        State("rank_slider", "value"),
+    ]
 )
-def plots(n_clicks, cities, indicator):
+def plots(n_clicks, cities, indicator, rank):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
 
     new_selection = selected_cities.loc[cities,:].sort_values(by=[indicator])
-
+    new_selection = new_selection.loc[new_selection['rank'] <= rank]
 
     x_bar = new_selection.index
     y_bar = new_selection[indicator]
@@ -193,7 +209,6 @@ def plots(n_clicks, cities, indicator):
                   xaxis=dict(title='Cities', color='#ffffff'),
                   paper_bgcolor='#171a27',
                   plot_bgcolor='#171a27',
-
                   )
 
     #############################################Second ScatterGeo######################################################
@@ -233,7 +248,10 @@ def plots(n_clicks, cities, indicator):
     df = pd.concat([all_generation, all_path, all_distances, name_city, x_coordinate, y_coordinate], axis=1)
     df.columns = ['generation', 'city', 'distance', 'name_city', 'x_coordinate', 'y_coordinate']
 
-    df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
+    if (df['distance'].max() - df['distance'].min() != 0):
+        df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
+    else:
+        df['norm_distance'] = 0
 
     df = df.merge(selected_cities['rank'], left_on='name_city', right_on='city', how='left')
 
@@ -247,14 +265,14 @@ def plots(n_clicks, cities, indicator):
                          color="blue",
                      ),
                      marker=dict(
-                         size=8,
+                         size=12,
                          #color="red",
-                         colorscale='RdBu',
+                         colorscale='Reds',
                          cmin = df['rank'].min(),
                          color=df.loc[df.loc[:, "generation"] == 'Generation_0', "rank"],
                          cmax = df['rank'].max(),
                          reversescale = True,
-                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))
+                         colorbar=dict(title="Tourism Ranking<br>2018")
                             ))]
     
     map_layout=go.Layout(
@@ -268,8 +286,6 @@ def plots(n_clicks, cities, indicator):
             t=50,
             #pad=4
         ),
-        paper_bgcolor='#171a27',
-        plot_bgcolor='#171a27',
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
                                         method="animate",
@@ -282,23 +298,23 @@ def plots(n_clicks, cities, indicator):
                      mode="lines+markers",
                      line=dict(width=((df.loc[df.loc[:,"generation"] == k,"norm_distance"].iloc[0])+0.1)*8, color="blue"),
                      marker=dict(
-                         size=8,
+                         size=12,
                          #color="red",
-                         colorscale='RdBu',
+                         colorscale='Reds',
                          cmin=df['rank'].min(),
                          color=df.loc[df.loc[:, "generation"] == k, "rank"],
                          cmax=df['rank'].max(),
                          reversescale=True,
-
-                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))))])
+                         colorbar=dict(title="Tourism Ranking<br>2018")))])
 
         for k in df.loc[:,"generation"].unique()]
 
     return go.Figure(data=data_bar, layout=layout_bar), \
-              go.Figure(data=map_data, layout=map_layout, frames=map_frames),
+           go.Figure(data=map_data, layout=map_layout, frames=map_frames),
 
 @app.callback(
     [
+        Output("indic_0", "children"),
         Output("indic_1", "children"),
         Output("indic_2", "children"),
         Output("indic_3", "children"),
@@ -307,14 +323,17 @@ def plots(n_clicks, cities, indicator):
     ],
 
     [
-        Input("city_drop", "value")
+        Input("city_drop", "value"),
+        Input("rank_slider", "value"),
     ]
 )
-def indicator(cities):
-    cities_sum = selected_cities.loc[selected_cities.index.isin(cities)].sum()
-    cities_avg = selected_cities.loc[selected_cities.index.isin(cities)].mean()
-    cities_max = selected_cities.loc[selected_cities.index.isin(cities)].max()
-    cities_min = selected_cities.loc[selected_cities.index.isin(cities)].min()
+def indicator(cities, rank):
+    cities = selected_cities.loc[selected_cities.index.isin(cities)]
+    cities = cities.loc[cities['rank'] <= rank]
+    cities_sum = cities.sum()
+    cities_avg = cities.mean()
+    cities_max = cities.max()
+    cities_min = cities.min()
 
     value_1 = round(cities_sum[summable_indicators[0]]/1000000,0)
     value_2 = round(cities_sum[summable_indicators[1]],2)
@@ -322,7 +341,12 @@ def indicator(cities):
     value_4 = round(cities_max[summable_indicators[2]], 2)
     value_5 = round(cities_min[summable_indicators[2]], 2)
     
-    return ' Average Hotel Price: $' + str(value_3), \
+    cities_selection = [str(x) for x in cities.index]
+    cities_selection.sort()
+    cities_selection = ', '.join(cities_selection)
+
+    return cities_selection,\
+           ' Average Hotel Price: $' + str(value_3), \
            ' Maximum Hotel Price: $' + str(value_4), \
            ' Minimum Hotel Price: $' + str(value_5),
 

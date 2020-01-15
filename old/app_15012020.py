@@ -104,7 +104,7 @@ app.layout = html.Div([
         ], className='column6'),
 
         html.Div([
-            html.Img(src=app.get_asset_url('Rotating_globe.gif'), style={'height':'40%', 'align': 'right'}),
+            html.Img(src=app.get_asset_url('Rotating_globe.gif'), style={'height':'50%', 'align': 'right'}),
         ], className='column7'),
 
     ], className='Title row2'),
@@ -117,7 +117,7 @@ app.layout = html.Div([
                 id='city_drop',
                 options=city_options,
                 value=list(np.random.choice(selected_cities.index, 10, replace=False)),
-                multi=True
+                multi=True,
             ),
 
             html.Br(),
@@ -131,27 +131,13 @@ app.layout = html.Div([
             ),
 
             html.Br(),
-            html.Label('What\'s the minimum ranking?'),
-            dcc.Slider(
-            id='rank_slider',
-            min=0,
-            max=100,
-            marks={str(i): '{}'.format(str(i)) for i in list(np.linspace(1,100,11, dtype = int))},
-            value=100,
-            step=None
-            ),
 
-            html.Br(),
-        #]),
-    #]),
-            html.Button('Submit', id="button")
+            html.Button('Submit', id="button"),
 
         ], className='column1 pretty'),
 
-    html.Div([
+        html.Div([
 
-            html.Div([html.Label('Cities above the minimum rank:'), html.Label(id='indic_0')], className='mini pretty'),        
-          
             html.Div([
 
                 html.Div([html.Label(id='indic_1')], className='mini pretty'),
@@ -171,7 +157,7 @@ app.layout = html.Div([
 
         html.Div([dcc.Graph(id='bar_graph')], className='bar_plot pretty')
 
-    ], className='row')
+    ])
 
 ])
 
@@ -180,33 +166,34 @@ app.layout = html.Div([
 @app.callback(
     [
         Output("bar_graph", "figure"),
-        Output("scattergeo", "figure"),
-    ],
+        Output("scattergeo", "figure") ,
+        ],
     [
         Input("button", 'n_clicks')
     ],
     [
         State("city_drop", "value"),
-        State("indicator", "value"),
-        State("rank_slider", "value"),
-           ]
+        State("indicator", "value"),   ]
 )
-def plots(n_clicks, cities, indicator, rank):
+def plots(n_clicks, cities, indicator):
 
     ############################################First Bar Plot##########################################################
     data_bar = []
 
     new_selection = selected_cities.loc[cities,:].sort_values(by=[indicator])
-    new_selection = new_selection.loc[new_selection['rank'] <= rank]
+
 
     x_bar = new_selection.index
     y_bar = new_selection[indicator]
 
-    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator, marker=dict(color='Red')))
+    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator,marker=dict(color='#e25c64')))
 
-    layout_bar = dict(title=dict(text=indicator.title() + ' per City'),
-                  yaxis=dict(title=indicator.title() + ' Value'),
-                  paper_bgcolor='#f9f9f9',
+    layout_bar = dict(title=dict(text=indicator.title() + ' per City',font=dict(color='#ffffff')),
+                  yaxis=dict(title=indicator.title() + ' Value',color='#ffffff'),
+                  xaxis=dict(title='Cities', color='#ffffff'),
+                  paper_bgcolor='#171a27',
+                  plot_bgcolor='#171a27',
+
                   )
 
     #############################################Second ScatterGeo######################################################
@@ -246,10 +233,7 @@ def plots(n_clicks, cities, indicator, rank):
     df = pd.concat([all_generation, all_path, all_distances, name_city, x_coordinate, y_coordinate], axis=1)
     df.columns = ['generation', 'city', 'distance', 'name_city', 'x_coordinate', 'y_coordinate']
 
-    if (df['distance'].max() - df['distance'].min() != 0):
-        df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
-    else:
-        df['norm_distance'] = 0
+    df['norm_distance'] = (df['distance'] - df['distance'].min()) / (df['distance'].max() - df['distance'].min())
 
     df = df.merge(selected_cities['rank'], left_on='name_city', right_on='city', how='left')
 
@@ -263,14 +247,14 @@ def plots(n_clicks, cities, indicator, rank):
                          color="blue",
                      ),
                      marker=dict(
-                         size=12,
+                         size=8,
                          #color="red",
-                         colorscale='Reds',
+                         colorscale='RdBu',
                          cmin = df['rank'].min(),
                          color=df.loc[df.loc[:, "generation"] == 'Generation_0', "rank"],
                          cmax = df['rank'].max(),
                          reversescale = True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")
+                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))
                             ))]
     
     map_layout=go.Layout(
@@ -284,6 +268,8 @@ def plots(n_clicks, cities, indicator, rank):
             t=50,
             #pad=4
         ),
+        paper_bgcolor='#171a27',
+        plot_bgcolor='#171a27',
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
                                         method="animate",
@@ -296,23 +282,23 @@ def plots(n_clicks, cities, indicator, rank):
                      mode="lines+markers",
                      line=dict(width=((df.loc[df.loc[:,"generation"] == k,"norm_distance"].iloc[0])+0.1)*8, color="blue"),
                      marker=dict(
-                         size=12,
+                         size=8,
                          #color="red",
-                         colorscale='Reds',
+                         colorscale='RdBu',
                          cmin=df['rank'].min(),
                          color=df.loc[df.loc[:, "generation"] == k, "rank"],
                          cmax=df['rank'].max(),
                          reversescale=True,
-                         colorbar=dict(title="Tourism Ranking<br>2018")))])
+
+                         colorbar=dict(title="Tourism Ranking<br>2018",titlefont=dict(color='#ffffff'))))])
 
         for k in df.loc[:,"generation"].unique()]
 
     return go.Figure(data=data_bar, layout=layout_bar), \
-           go.Figure(data=map_data, layout=map_layout, frames=map_frames)
+              go.Figure(data=map_data, layout=map_layout, frames=map_frames),
 
 @app.callback(
     [
-        Output("indic_0", "children"),
         Output("indic_1", "children"),
         Output("indic_2", "children"),
         Output("indic_3", "children"),
@@ -321,17 +307,14 @@ def plots(n_clicks, cities, indicator, rank):
     ],
 
     [
-        Input("city_drop", "value"),
-        Input("rank_slider", "value"),
+        Input("city_drop", "value")
     ]
 )
-def indicator(cities, rank):
-    cities = selected_cities.loc[selected_cities.index.isin(cities)]
-    cities = cities.loc[cities['rank'] <= rank]
-    cities_sum = cities.sum()
-    cities_avg = cities.mean()
-    cities_max = cities.max()
-    cities_min = cities.min()
+def indicator(cities):
+    cities_sum = selected_cities.loc[selected_cities.index.isin(cities)].sum()
+    cities_avg = selected_cities.loc[selected_cities.index.isin(cities)].mean()
+    cities_max = selected_cities.loc[selected_cities.index.isin(cities)].max()
+    cities_min = selected_cities.loc[selected_cities.index.isin(cities)].min()
 
     value_1 = round(cities_sum[summable_indicators[0]]/1000000,0)
     value_2 = round(cities_sum[summable_indicators[1]],2)
@@ -339,12 +322,7 @@ def indicator(cities, rank):
     value_4 = round(cities_max[summable_indicators[2]], 2)
     value_5 = round(cities_min[summable_indicators[2]], 2)
     
-    cities_selection = [str(x) for x in cities.index]
-    cities_selection.sort()
-    cities_selection = ', '.join(cities_selection)
-
-    return cities_selection,\
-           ' Average Hotel Price: $' + str(value_3), \
+    return ' Average Hotel Price: $' + str(value_3), \
            ' Maximum Hotel Price: $' + str(value_4), \
            ' Minimum Hotel Price: $' + str(value_5),
 
