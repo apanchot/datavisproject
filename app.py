@@ -157,6 +157,11 @@ app.layout = html.Div([
 
         html.Div([
             html.H1('World Tour Simulator'),
+            html.H6("The world tour simulator is used to calculate the shortest path between selected global cities. "
+                    "As you select cities, the aggregate indicators will update in real time. "
+                    "Once you click 'Submit' the path begins to be calculated with a genetic algorithm."
+                    " After the algorithm completes, the solution is visible on the 'Optimal Route' tab."
+                    " Other visuals representing the chosen cities can be found on the other tabs.")
         ], className='column6'),
 
         html.Div([
