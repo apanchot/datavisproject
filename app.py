@@ -369,15 +369,17 @@ def plots(n_clicks, cities, indicator, rank):
     
     bubble_data = []
 
-    for i in range(len(bubble_x)):
-        bubble_data.append(dict(x=bubble_x[i],
-                                y=bubble_y[i],
-                                color=bubble_color[i],
+    for cont in new_selection.loc[:,'continent'].unique():
+        new_selection_continent = new_selection.loc[new_selection.loc[:,'continent'] == cont,:]
+        bubble_data.append(dict(x=new_selection_continent['hotel_price'],
+                                y=new_selection_continent['tickets'],
+                                # color=list(new_selection_continent['continent']),
                                 mode='markers',
+                                name=cont,
                                 marker={
-                                        'size':bubble_size[i],
+                                        'size':new_selection_continent['rank'].pow(-1),
                                         'sizemode':'area',
-                                        'sizeref':2.*max(bubble_size)/(40.**2),
+                                        'sizeref':2.*max(new_selection_continent['rank'].pow(-1))/(40.**2),
                                         'sizemin':4,
                                 }))
 
@@ -412,7 +414,8 @@ def plots(n_clicks, cities, indicator, rank):
                         ),
                         paper_bgcolor='#000000',
                         plot_bgcolor='rgb(243, 243, 243)',
-                        font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif')
+                        font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif'),
+                        legend=dict(itemsizing="constant")
                         )
     
 
