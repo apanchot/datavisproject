@@ -403,20 +403,34 @@ def plots(n_clicks, cities, indicator, rank):
 
 ############################################Bubble Scatter Plot##########################################################
     bubble_data = []
+    hover_text = []
+
+    for index, row in new_selection.iterrows():
+        hover_text.append(('City: {city}<br>' +
+                           'Rank: {rank}<br>' +
+                           'Tickets: ${tickets}<br>' +
+                           'Hotel Price: ${hotel_price}<br>').format(city=index,
+                                                                    rank=int(row['rank']),
+                                                                    tickets='{0:.2f}'.format(row['tickets']),
+                                                                    hotel_price='{0:.2f}'.format(row['hotel_price'])))
+
+    new_selection['text'] = hover_text
+    new_selection['size_bubble'] = 50/new_selection['rank']
 
     for cont in new_selection.loc[:,'continent'].unique():
         new_selection_continent = new_selection.loc[new_selection.loc[:,'continent'] == cont,:]
         bubble_data.append(dict(x=new_selection_continent['hotel_price'],
                                 y=new_selection_continent['tickets'],
-                                # color=list(new_selection_continent['continent']),
                                 mode='markers',
                                 name=cont,
                                 marker={
-                                        'size':new_selection_continent['rank'].pow(-1),
+                                        'size':new_selection['size_bubble'],
                                         'sizemode':'area',
-                                        'sizeref':2.*max(new_selection_continent['rank'].pow(-1))/(40.**2),
+                                        'sizeref':2.*max(new_selection['rank'].pow(-1))/(40.**2),
                                         'sizemin':4,
-                                }))
+                                },
+                                text=new_selection_continent['text']
+                                ))
 
     bubble_layout = dict(
                         title=dict(text='Lodging and Transportation Costs (US$)',
