@@ -27,6 +27,29 @@ cities_coordinates = pd.read_csv('./data/worldcities.csv')
 #Importing a dataframe that contains tourism ranking and arrivals data
 cities_visitors = pd.read_csv('./data/wiki_international_visitors.csv')
 
+# Adding Continents
+Asia = cities_visitors.loc[:,'Country'].isin(['China','Thailand','Macau','Singapore','United Arab Emirates',
+                                              'Malaysia','Turkey','India','Japan','Taiwan','Saudi Arabia',
+                                              'South Korea','Vietnam','Indonesia','Israel','Philippines',
+                                              'Iran','Lebanon','Sri Lanka','Jordan'])
+Africa = cities_visitors.loc[:,'Country'].isin(['Egypt','South Africa','Morocco','Ghana','Nigeria'])
+Europe = cities_visitors.loc[:,'Country'].isin(['United Kingdom','France','Italy','Czech Republic','Netherlands',
+                                                'Spain', 'Austria','Germany','Greece', 'Russia', 'Ireland','Belgium', 
+                                                'Hungary', 'Portugal', 'Denmark','Poland','Sweden','Switzerland',
+                                                'Romania', 'Bulgaria'])
+Oceania = cities_visitors.loc[:,'Country'].isin(['Australia','New Zealand'])
+North_America = cities_visitors.loc[:,'Country'].isin(['United States','Mexico','Canada'])
+South_America = cities_visitors.loc[:,'Country'].isin(['Argentina','Peru','Brazil','Colombia','Uruguay','Ecuador'])
+Central_America = cities_visitors.loc[:,'Country'].isin(['Dominican Republic'])
+cities_visitors.loc[:,'Continent'] = cities_visitors.loc[:,'Country']
+cities_visitors.loc[:,'Continent'].mask(Asia, 'Asia', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(Africa, 'Africa', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(Europe, 'Europe', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(Oceania, 'Oceania', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(North_America, 'North America', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(South_America, 'South America', inplace=True)
+cities_visitors.loc[:,'Continent'].mask(Central_America, 'Central America', inplace=True)
+
 #Importing a dataframe with average hotel prices by city
 hotel_prices = pd.read_excel('./data/average_hotel_prices.xlsx')
 
@@ -69,7 +92,7 @@ transportation.set_index('city', inplace=True)
 selected_cities = selected_cities.merge(cities_visitors[['Rank(Euromonitor)',
                                                    'Arrivals 2018(Euromonitor)',
                                                    'Growthin arrivals(Euromonitor)',
-                                                   'Income(billions $)(Mastercard)']], left_index=True, right_index=True, how='left')
+                                                   'Income(billions $)(Mastercard)', 'Continent']], left_index=True, right_index=True, how='left')
 
 selected_cities = selected_cities.merge(hotel_prices[['hotel_price']], left_index=True, right_index=True, how='left')
 
@@ -79,7 +102,8 @@ selected_cities.rename(columns={'Rank(Euromonitor)':'rank',
                                 'Arrivals 2018(Euromonitor)':'arrivals',
                                 'Growthin arrivals(Euromonitor)':'growth',
                                 'Income(billions $)(Mastercard)':'income',
-                                'average_ticket_dollars': 'tickets'}, inplace=True)
+                                'average_ticket_dollars': 'tickets',
+                                'Continent': 'continent'}, inplace=True)
 
 selected_cities['norm_rank'] = (selected_cities['rank'] - selected_cities['rank'].min()) / (selected_cities['rank'].max() - selected_cities['rank'].min())
 
@@ -211,7 +235,7 @@ def plots(n_clicks, cities, indicator, rank):
     x_bar = new_selection.index
     y_bar = new_selection[indicator]
 
-    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator,marker=dict(color='#e25c64')))
+    data_bar.append(dict(type='bar', x=x_bar, y=y_bar, name=indicator,marker=dict(color='red')))
 
     layout_bar = dict(title=dict(text=indicator.title() + ' per City',font=dict(color='#ffc40e')),
                   yaxis=dict(title=indicator.title() + ' Value',color='#ffc40e'),
@@ -225,6 +249,7 @@ def plots(n_clicks, cities, indicator, rank):
     data = [[distance(i, j) for j in new_selection.index] for i in new_selection.index]
 
     run = ga_search(data)
+    print(run)
 
     def path(x):
         best_fitness_aux = run.loc[x, 'Fittest'].replace(',', '').replace('[', '').replace(']', '').split(' ')
@@ -285,6 +310,11 @@ def plots(n_clicks, cities, indicator, rank):
                             ))]
     
     map_layout=go.Layout(
+        title=dict(text='Optimized World Tour',
+                                   xanchor='center',
+                                   y=0.95,
+                                   x=0.5,
+                                   yanchor='top'),
         #title_text="Optimized World Tour",
         hovermode="closest",
         #width=1400,
@@ -295,6 +325,19 @@ def plots(n_clicks, cities, indicator, rank):
             t=50,
             #pad=4
         ),
+        font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif'),
+        paper_bgcolor = 'black',
+        geo = dict(
+            showland = True,
+            showcountries = True,
+            showocean = True,
+            countrywidth = 0.5,
+            landcolor = 'rgb(204, 204, 204)',
+            countrycolor = 'rgb(204, 204, 204)',
+            lakecolor = 'rgb(0, 255, 255)',
+            bgcolor = 'black',
+            oceancolor = 'black'
+            ),
         updatemenus=[dict(type="buttons",
                           buttons=[dict(label="Play",
                                         method="animate",
@@ -319,25 +362,44 @@ def plots(n_clicks, cities, indicator, rank):
         for k in df.loc[:,"generation"].unique()]
 
 ############################################Bubble Scatter Plot##########################################################
-    bubble_x = new_selection['hotel_price']
-    bubble_y = new_selection['tickets']
-    bubble_size = new_selection['rank'].pow(-1)
-    print(bubble_size)
+    bubble_x = list(new_selection['hotel_price'])
+    bubble_y = list(new_selection['tickets'])
+    bubble_size = list(new_selection['rank'].pow(-1))
+    bubble_color= list(new_selection['continent'])
+    
+    bubble_data = []
 
-    bubble_data = [{
-                    'x':bubble_x,
-                    'y':bubble_y,
-                    'mode':'markers',
-                    'marker':{
-                        'size':bubble_size,
-                        'sizemode':'area',
-                        'sizeref':2.*max(bubble_size)/(40.**2),
-                        'sizemin':4
-                    }
-    }]
+    for i in range(len(bubble_x)):
+        bubble_data.append(dict(x=bubble_x[i],
+                                y=bubble_y[i],
+                                color=bubble_color[i],
+                                mode='markers',
+                                marker={
+                                        'size':bubble_size[i],
+                                        'sizemode':'area',
+                                        'sizeref':2.*max(bubble_size)/(40.**2),
+                                        'sizemin':4,
+                                }))
+
+    #bubble_data = [{'x':bubble_x,
+    #                'y':bubble_y,
+    #                #'color': bubble_color,
+    #                'mode':'markers',
+    #                'marker':{
+    #                    'size':bubble_size,
+    #                    'sizemode':'area',
+    #                    'sizeref':2.*max(bubble_size)/(40.**2),
+    #                    'sizemin':4,
+    #                    'color': bubble_color,
+    #                    },     
+    #              }]
 
     bubble_layout = dict(
-                        title='Lodging and Transportation Costs (US$)',
+                        title=dict(text='Lodging and Transportation Costs (US$)',
+                                   xanchor='center',
+                                   y=0.9,
+                                   x=0.5,
+                                   yanchor='top'),
                         xaxis=dict(
                             title='Hotel Room Price',
                             gridcolor='white',
@@ -348,8 +410,9 @@ def plots(n_clicks, cities, indicator, rank):
                             gridcolor='white',
                             gridwidth=2,
                         ),
-                        paper_bgcolor='rgb(243, 243, 243)',
+                        paper_bgcolor='#000000',
                         plot_bgcolor='rgb(243, 243, 243)',
+                        font=dict(color='#ffc40e', size=14, family='Open Sans, sans-serif')
                         )
     
 
